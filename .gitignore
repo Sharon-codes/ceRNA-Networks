@@ -1,0 +1,32 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data
+data/raw/
+data/processed/
+!data/raw/databases/README.md
+
+# Logs and Metrics
+logs/
+metrics/
+cv_results.csv
+
+# Environment
+.env
+venv/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Research Artifacts
+figures/*.png
+figures/*.pdf
+temp/
+scratch/

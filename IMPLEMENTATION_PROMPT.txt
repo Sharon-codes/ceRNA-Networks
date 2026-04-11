@@ -1,0 +1,349 @@
+
+IMPLEMENTATION PROMPT — RESEARCH 1
+ceRNA Network Collapse for Pan-Cancer Early Detection
+(Copy this entire block into Claude Code, Cursor, or Codex)
+============================================================
+
+You are an expert computational biologist building a complete, production-quality
+research pipeline for early-stage pan-cancer detection from plasma circRNA and miRNA
+data. This will produce a publishable paper targeting Molecular Oncology (Q1, IF ~6.5).
+
+PROJECT ROOT: ceRNA-cancer-detection/
+
+==========================================================
+BACKGROUND (read before writing any code)
+==========================================================
+
+BIOLOGY:
+- Circular RNAs (circRNAs) in plasma sponge miRNAs via MREs (miRNA Response Elements).
+- This "ceRNA network" has stable topology in healthy individuals.
+- In early-stage cancer, circRNA hubs are lost or gained → network topology collapses.
+- We detect this topological collapse rather than individual DE (differential expression).
+  That is the NOVEL CONTRIBUTION over all existing circRNA biomarker papers.
+- Datasets: GSE113486 (CRC plasma circRNA, n=188), GSE115513 (miRNA CRC stages, n=344),
+  GSE73002 (multi-cancer miRNA, n=1420), GSE159835 (lung validation, n=120).
+  All from NCBI GEO — free, no access application needed.
+
+CORE NOVEL CLAIM:
+  Healthy ceRNA graphs are modular, hub-dominated, low-entropy networks.
+  Stage-I cancer graphs are fragmented, low-modularity, high-entropy.
+  XGBoost on 30 graph topology features achieves AUC 0.88–0.93 vs ~0.78 for DE alone.
+
+==========================================================
+RULES FOR ALL CODE YOU WRITE
+==========================================================
+
+1. Type hints on every function signature.
+2. Google-style docstrings on every function (Args, Returns, Raises).
+3. All logging via Python logging module → log to file in logs/ AND stdout.
+   NEVER use print() for status messages.
+4. Set random_state=42 / seed=42 everywhere randomness is involved.
+5. Config via config/config.py dataclass — NEVER hardcode paths or thresholds.
+6. Functions must be independently testable (no global side effects).
+7. On any error, log the full exception with log.exception() and raise.
+8. Every file must run as a standalone script (if __name__ == "__main__": block).
+9. All output files go to the directory specified in cfg — never to CWD.
+10. Handle missing data gracefully: log a warning, use a fallback, continue.
+
+==========================================================
+FILE STRUCTURE (create exactly this)
+==========================================================
+
+ceRNA-cancer-detection/
+├── config/
+│   └── config.py              ← Config dataclass (paths, thresholds, XGB params)
+├── data/
+│   ├── download_dbs.py        ← Download miRTarBase, CircInteractome, miRBase
+│   └── load_geo.py            ← Download GEO datasets, preprocess, normalise, save
+├── network/
+│   └── build_cerna.py         ← Build global ceRNA graph + per-patient subgraphs
+├── features/
+│   └── extract_topology.py    ← Extract 30 topology features per patient
+├── models/
+│   └── classify.py            ← XGBoost + Optuna CV + SHAP
+├── figures/
+│   └── plot_all.py            ← All 5 paper figures
+├── logs/                      ← Auto-created. All log files go here.
+├── run_pipeline.py            ← Master orchestrator
+└── requirements.txt
+
+==========================================================
+PHASE 1: DATA DOWNLOAD (data/download_dbs.py + data/load_geo.py)
+==========================================================
+
+TASK 1A — download_dbs.py:
+Download and cache to data/raw/databases/:
+  a) miRTarBase MTI xlsx from https://mirtarbase.cuhk.edu.cn
+     → Parse → keep only strong experimental evidence (Luciferase, Western blot, CLIP-Seq)
+     → Save filtered: mirtarbase_filtered.csv
+     → Columns needed: miRNA_id, mRNA_id, edge_weight (=1.0 for all validated)
+
+  b) CircInteractome circRNA-miRNA predictions
+     → Try API: GET https://circinteractome.nia.nih.gov/api/v2/mirnasponge?format=tsv
+     → If API fails, create empty placeholder and log a MANUAL FALLBACK message
+     → Save: circinteractome_interactions.csv
+     → Columns needed: circRNA_id, miRNA_id, score, edge_weight (normalised to [0,1])
+
+  c) miRBase mature miRNA sequences from https://www.mirbase.org/ftp/CURRENT/mature.fa.gz
+     → Extract and filter to hsa- (human) sequences only
+     → Save: mature_hsa_only.fa (FASTA format)
+
+Skip any file that already exists (cache-safe re-running).
+
+TASK 1B — load_geo.py:
+Use GEOparse library to download and parse:
+  - GSE113486: plasma circRNA, 188 samples (100 CRC + 88 healthy)
+  - GSE115513: plasma miRNA, 344 samples (CRC stages I-IV + healthy)
+  - GSE73002:  plasma miRNA, 1420 samples (7 cancer types + healthy)
+
+For each GSE:
+  → Try to load from gsm.table (GEOparse standard approach)
+  → If tables are empty (common!): scan data/raw/<GSEID>/ for supplementary matrix files
+    (patterns: *_matrix*, *_counts*, *.txt.gz, *.csv.gz) and load those
+  → If nothing found: log a clear manual download instruction and raise FileNotFoundError
+
+Preprocessing:
+  → circRNA: CPM normalisation (counts / (col_sum / 1e6))
+  → miRNA:   RPM normalisation (same formula, different name by convention)
+  → Filter circRNAs: keep if CPM >= 1.0 in >= 30% of samples
+  → Filter miRNAs: keep if CPM >= 1.0 in >= 20% of samples
+
+Metadata parsing from characteristics_ch1:
+  → Extract: disease state, disease stage, age, sex
+  → Map cancer labels: "colorectal"/"colon"/"rectal" → "CRC", "lung" → "Lung", etc.
+  → Map healthy labels: "healthy"/"normal"/"control" → "Healthy"
+
+OUTPUTS:
+  → data/processed/circRNA_counts.csv  (features × samples, CPM-normalised, filtered)
+  → data/processed/miRNA_counts.csv    (features × samples, RPM-normalised, filtered)
+  → data/processed/metadata.csv        (sample_id, cancer_type, stage, age, sex, dataset)
+
+==========================================================
+PHASE 2: ceRNA NETWORK CONSTRUCTION (network/build_cerna.py)
+==========================================================
+
+STEP A — Load interactions:
+  → Load circinteractome_interactions.csv: circRNA_id, miRNA_id, edge_weight
+  → Load mirtarbase_filtered.csv: miRNA_id (hsa- only), mRNA_id, edge_weight=1.0
+  → If CircInteractome has 0 rows: log warning that network will use miRTarBase only
+
+STEP B — Build global tripartite DiGraph (NetworkX DiGraph):
+  → circRNA nodes: node_type="circRNA"
+  → miRNA nodes:   node_type="miRNA"
+  → mRNA nodes:    node_type="mRNA"
+  → Edge circRNA→miRNA: weight=normalised_score, edge_type="sponge"
+  → Edge miRNA→mRNA:    weight=1.0,             edge_type="suppression"
+  → Log: total nodes, edges, breakdown by node_type
+
+STEP C — Per-patient personalised subgraph:
+  For each patient ID that exists in circRNA_counts.csv columns:
+    a) Get patient's circRNA expression vector (CPM values, index=circRNA names)
+    b) Get patient's miRNA expression vector (RPM values) — or population mean if missing
+    c) expressed_circ = circRNAs where CPM >= 1.0
+    d) expressed_mirna = miRNAs where RPM >= 1.0
+    e) keep_nodes = expressed_circ ∪ expressed_mirna ∪ all mRNA nodes (mRNAs always kept)
+    f) sub = global_G.subgraph(keep_nodes).copy()
+    g) Re-weight each edge: new_weight = sqrt(expr_nodeA * expr_nodeB + 1e-9)
+    h) Store: sub.graph["patient_id"] = patient_id
+    i) Skip graphs with < 5 nodes (log warning)
+
+OUTPUT: Save dict {patient_id → nx.DiGraph} as network/graphs.pkl using pickle.HIGHEST_PROTOCOL
+
+==========================================================
+PHASE 3: TOPOLOGY FEATURE EXTRACTION (features/extract_topology.py)
+==========================================================
+
+For each patient graph, extract EXACTLY these 30 features:
+
+GROUP 1 — COMMUNITY STRUCTURE (2 features):
+  community_count     : number of Louvain communities (on undirected projection)
+                        Use python-louvain if available, else networkx greedy_modularity_communities
+  modularity_Q        : Louvain modularity score Q ∈ [-1, 1]
+
+GROUP 2 — HUB ANALYSIS (4 features):
+  top5_hub_degree_mean    : mean degree centrality of top-5 circRNA nodes by degree
+  top5_hub_degree_max     : max degree centrality among top-5 circRNA nodes
+  top5_hub_betweenness_mean : mean betweenness centrality of top-5 circRNA nodes
+  top5_hub_betweenness_max  : max betweenness centrality
+  NOTE: For graphs > 500 nodes, use k=200 approximation for betweenness
+
+GROUP 3 — CONNECTIVITY (3 features):
+  avg_clustering      : networkx.average_clustering on undirected graph
+  network_diameter    : diameter of largest connected component (approx for large graphs)
+  edge_density        : 2*edges / (nodes*(nodes-1))
+
+GROUP 4 — INFORMATION FLOW (2 features):
+  spectral_entropy    : Shannon entropy of normalised abs(eigenvalues) of adjacency matrix
+  graph_entropy       : Shannon entropy of node degree distribution
+
+GROUP 5 — RESILIENCE (2 features):
+  percolation_threshold : fraction of nodes removed (highest-degree first) when LCC < 50%
+  lcc_fragility_score   : area under LCC-vs-removal curve (trapz, normalised)
+
+GROUP 6 — TDA (3 features):
+  betti_0             : number of connected components
+  betti_1             : approximate cycle count: max(0, edges - nodes + components)
+  persistence_entropy : gudhi SimplexTree persistence entropy
+                        If gudhi unavailable: scipy entropy of degree distribution as fallback
+
+GROUP 7 — EXPRESSION SUMMARIES (6 features):
+  mean_top50_circ_weight  : mean total out-edge weight for top-50 circRNA nodes
+  mirna_diversity_shannon : Shannon entropy of miRNA degree distribution
+  n_circ_expressed        : number of circRNA nodes in patient's subgraph
+  n_mirna_expressed       : number of miRNA nodes
+  n_mrna_reachable        : number of mRNA nodes
+  circ_mirna_ratio        : n_circ / (n_mirna + 1e-9)
+
+TOTAL: 22 features. The remaining ~8 can be additional graph metrics you compute
+(e.g., assortativity, global efficiency, small-world coefficient, etc.)
+
+POST-PROCESSING:
+  → Z-score normalise all numeric features across the full patient cohort
+  → Join metadata columns: cancer_type, stage, age, sex, dataset
+
+OUTPUT: features/feature_matrix.csv (rows=patients, cols=features+metadata)
+
+==========================================================
+PHASE 4: CLASSIFICATION (models/classify.py)
+==========================================================
+
+DATA LOADING:
+  → Load feature_matrix.csv
+  → Separate topology features from metadata cols ["cancer_type","stage","age","sex","dataset"]
+  → Also separate expression-only features for baseline comparison
+  → y_binary: 0=Healthy, 1=any_cancer (based on cancer_type column)
+  → y_multi: cancer_type string (for multi-class and per-cancer AUC)
+  → stages: stage column (for stage-stratified analysis)
+
+CHECK: if len(y_binary.unique()) < 2:
+  → This means metadata labels didn't load — log clear error explaining what to check
+
+BINARY CLASSIFICATION (main model):
+  XGBoost params (starting point, Optuna will tune):
+    n_estimators: 100-500, max_depth: 3-6, learning_rate: 0.01-0.2 (log scale)
+    subsample: 0.6-1.0, colsample_bytree: 0.5-1.0, min_child_weight: 3-10
+    gamma: 0.0-1.0, reg_alpha: 0.0-1.0, reg_lambda: 0.5-2.0
+    scale_pos_weight: computed as n_healthy / n_cancer
+
+  CROSS-VALIDATION:
+    StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    Stratify by cancer_type + stage combined if possible, else by binary label
+
+    For each outer fold:
+      Inner: Optuna study, direction="maximize", 100 trials, TPESampler(seed=42)
+      Inner CV: 3-fold on train set
+      Objective: mean AUC on inner validation folds
+      After Optuna: train best_params model on full outer train set
+      Predict on outer test set → store out-of-fold predictions
+
+  METRICS (compute from out-of-fold predictions):
+    - mean_auc ± std_auc
+    - sensitivity at 95% specificity (clinical standard)
+    - per-stage AUC: for each stage in [I, II, III, IV], compute AUC if >=10 samples
+
+BASELINE COMPARISON:
+  → Repeat identical CV with expression-only features (same code, different X)
+  → Report both in cv_results.csv for Table 2 of the paper
+
+SHAP:
+  → Train final model on FULL dataset with best params from last fold
+  → shap.TreeExplainer(final_model)
+  → Compute shap_values for all patients
+  → Save: shap_values.npy, shap_base_values.npy
+
+SAVES:
+  → models/best_model.pkl
+  → models/cv_results.csv (topology vs expression comparison table)
+  → models/shap_values.npy
+  → models/shap_base_values.npy
+
+==========================================================
+PHASE 5: FIGURES (figures/plot_all.py)
+==========================================================
+
+FIG 2 — NETWORK COMPARISON (figures/Fig2_network_comparison.png):
+  Left panel: representative healthy graph
+  Right panel: representative Stage-I cancer graph
+  Both: spring_layout(seed=42), node colour by node_type (circRNA=teal, miRNA=orange, mRNA=grey)
+  Node size proportional to betweenness centrality * 3000
+  Limited to 30 nodes from LCC for visual clarity
+  Representative graph = most-frequent edges across cohort (present in >50% of patients)
+
+FIG 3 — ROC CURVES (figures/Fig3_roc_curves.png):
+  One subplot per cancer type, One-vs-Rest approach
+  Line: mean TPR across 500 bootstrap samples
+  Shaded band: mean ± 1.96*std (95% CI)
+  Legend: AUC ± std
+  Add diagonal reference line (random classifier)
+
+FIG 4 — SHAP BEESWARM (figures/Fig4_shap_beeswarm.png):
+  Load shap_values.npy and shap_base_values.npy
+  shap.plots.beeswarm(shap.Explanation(values, base_values, data, feature_names))
+  Show top 20 features, DPI=300
+
+FIG 5 — STAGE STRATIFICATION (figures/Fig5_stage_stratification.png):
+  Seaborn boxplot: x=stage (I,II,III,IV), y=model_probability_score, hue=true_label
+  Cancer patients should show higher scores even at Stage I
+  Add horizontal dashed line at 0.5 (decision threshold)
+
+ALL FIGURES: DPI=300, no top/right spines, DejaVu Sans font, tight_layout()
+
+==========================================================
+PIPELINE RUNNER (run_pipeline.py)
+==========================================================
+
+Create a master script that runs all phases in sequence with:
+  --start=N to resume from phase N
+  --phase=N to run only phase N
+Log elapsed time for each phase.
+If any phase fails (non-zero exit): log error, tell user to fix and re-run with --start=N, sys.exit(1)
+
+==========================================================
+COMMON PITFALLS TO AVOID
+==========================================================
+
+1. GEO GSM tables often empty → ALWAYS implement supplementary file fallback
+2. Patient IDs across circRNA and miRNA datasets often DON'T overlap (different GEO accessions)
+   → Handle this: build circRNA-only patient graphs using population-mean miRNA
+3. NetworkX diameter fails on disconnected graphs → ALWAYS work on LCC
+4. Betweenness centrality is O(n³) → use k=200 approximation for n>500
+5. SHAP beeswarm needs shap.Explanation object, not raw array → wrap it properly
+6. gudhi SimplexTree: node IDs must be integers → map string node names to int indices
+7. Optuna: suppress verbose output in inner loop (optuna.logging.set_verbosity(WARNING))
+8. Z-score normalisation: do AFTER CV split in production; here we do it globally for speed
+   → Add a comment noting this limitation
+9. miRTarBase URL may change → log the URL being tried and give a manual fallback instruction
+10. CircInteractome API can time out → always catch timeout and create placeholder file
+
+==========================================================
+DELIVERABLE CHECKLIST (verify before submitting)
+==========================================================
+
+□ config/config.py           — dataclass with all paths and params
+□ data/download_dbs.py       — downloads 3 external DBs with cache-safety
+□ data/load_geo.py           — loads 3 GEO datasets, normalises, saves 3 CSVs
+□ network/build_cerna.py     — global graph + per-patient subgraphs, saves graphs.pkl
+□ features/extract_topology.py — 30-feature extraction, saves feature_matrix.csv
+□ models/classify.py         — XGBoost CV, Optuna tuning, SHAP, saves model+results
+□ figures/plot_all.py        — 4 paper-quality figures at DPI=300
+□ run_pipeline.py            — master orchestrator with --start/--phase flags
+□ requirements.txt           — all dependencies pinned to major version
+□ Every file has type hints, docstrings, logging, seed=42
+□ Every file runs standalone as __main__
+□ No hardcoded paths — all from cfg
+□ All errors logged with log.exception() before raising
+
+==========================================================
+QUICK DEV SEQUENCE (do this first before full pipeline)
+==========================================================
+
+Step 1: Download ONE dataset only (GSE113486, ~50 samples) to test the full pipeline
+Step 2: Use CircInteractome placeholder (0-row file) to test network builder
+Step 3: Verify feature_matrix.csv has correct shape and no all-NaN columns
+Step 4: Verify classifier runs (even with random labels as sanity check)
+Step 5: Verify all figures generate without errors
+Step 6: Only THEN download all datasets and run the full pipeline
+
+==========================================================
+END OF IMPLEMENTATION PROMPT
+==========================================================
