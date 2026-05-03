@@ -1,0 +1,46 @@
+[
+  {
+    "held_out_dataset": "GSE73002",
+    "platform": "whole_blood_microarray",
+    "same_platform_in_training": false,
+    "n_test": 4113,
+    "n_cancer_test": 1373,
+    "n_healthy_test": 2740,
+    "auc": 0.8408,
+    "auc_ci_lo": 0.8266,
+    "auc_ci_hi": 0.8526,
+    "ci_excludes_0_5": true,
+    "average_precision": 0.7172,
+    "sensitivity_95spec": 0.2993,
+    "status": "ok",
+    "best_params": "{\"n_estimators\": 80, \"max_depth\": 6, \"learning_rate\": 0.08310795711416077, \"subsample\": 0.9051525088143455, \"colsample_bytree\": 0.919944621340081, \"min_child_weight\": 1, \"gamma\": 1.0753971856328177, \"reg_alpha\": 0.021695931775117264, \"reg_lambda\": 3.203811186167387, \"scale_pos_weight\": 0.755125284738041, \"eval_metric\": \"logloss\", \"random_state\": 42, \"n_jobs\": 1}"
+  },
+  {
+    "held_out_dataset": "GSE115513",
+    "platform": "exosome_rnaseq",
+    "same_platform_in_training": false,
+    "n_test": 1513,
+    "n_cancer_test": 864,
+    "n_healthy_test": 649,
+    "auc": 0.584,
+    "auc_ci_lo": 0.5556,
+    "auc_ci_hi": 0.6159,
+    "ci_excludes_0_5": true,
+    "average_precision": 0.666,
+    "sensitivity_95spec": 0.1308,
+    "status": "ok",
+    "best_params": "{\"n_estimators\": 173, \"max_depth\": 5, \"learning_rate\": 0.011492999300221412, \"subsample\": 0.8626406981655035, \"colsample_bytree\": 0.7096834432905521, \"min_child_weight\": 1, \"gamma\": 2.84665661176, \"reg_alpha\": 6.357943823664365, \"reg_lambda\": 2.222543382380875, \"scale_pos_weight\": 1.985580389329488, \"eval_metric\": \"logloss\", \"random_state\": 42, \"n_jobs\": 1}"
+  },
+  {
+    "held_out_dataset": "GSE126094",
+    "platform": "plasma_rnaseq",
+    "n_test": 20,
+    "status": "skipped_n_below_minimum"
+  },
+  {
+    "held_out_dataset": "GSE101684",
+    "platform": "serum_rnaseq",
+    "n_test": 8,
+    "status": "skipped_n_below_minimum"
+  }
+]

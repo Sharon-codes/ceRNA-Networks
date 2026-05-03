@@ -66,9 +66,44 @@ def sensitivity_at_specificity(y_true, y_score, spec=0.95):
     return float(np.max(tpr[mask])) if np.any(mask) else 0.0
 
 
+import optuna
+
 def run_classification_pipeline(X: pd.DataFrame, y_bin: pd.Series, y_mul: pd.Series, stages: pd.Series, tag: str) -> Dict[str, Any]:
     log.info("=== Training Pipeline: %s ===", tag)
     skf = StratifiedKFold(n_splits=cfg.n_cv_folds, shuffle=True, random_state=42)
+    
+    def objective(trial):
+        params = {
+            "n_estimators": trial.suggest_int("n_estimators", 50, 300),
+            "max_depth": trial.suggest_int("max_depth", 3, 9),
+            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
+            "subsample": trial.suggest_float("subsample", 0.6, 1.0),
+            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
+            "random_state": 42,
+            "eval_metric": "auc",
+            "scale_pos_weight": (y_bin == 0).sum() / max(1, (y_bin == 1).sum())
+        }
+        aucs = []
+        for tr, te in StratifiedKFold(n_splits=3, shuffle=True, random_state=42).split(X, y_bin):
+            clf = xgb.XGBClassifier(**params)
+            clf.fit(X.iloc[tr], y_bin.iloc[tr])
+            aucs.append(roc_auc_score(y_bin.iloc[te], clf.predict_proba(X.iloc[te])[:, 1]))
+        return np.mean(aucs)
+        
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    study = optuna.create_study(direction="maximize")
+    log.info("Running Optuna tuning (50 trials)...")
+    study.optimize(objective, n_trials=50)
+    best_params = study.best_params
+    log.info("Best params: %s", best_params)
+    
+    bin_params = best_params.copy()
+    bin_params["scale_pos_weight"] = (y_bin == 0).sum() / max(1, (y_bin == 1).sum())
+    bin_params["random_state"] = 42
+    bin_params["eval_metric"] = "auc"
+    
+    mul_params = best_params.copy()
+    mul_params["random_state"] = 42
     
     binary_aucs, binary_sens, multi_accs, stage_I_aucs, stage_I_sens = [], [], [], [], []
     
@@ -78,26 +113,20 @@ def run_classification_pipeline(X: pd.DataFrame, y_bin: pd.Series, y_mul: pd.Ser
         ym_tr, ym_te = y_mul.iloc[tr], y_mul.iloc[te]
         st_te = stages.iloc[te]
         
-        # Binary Model
-        scale = (y_tr == 0).sum() / max(1, (y_tr == 1).sum())
-        clf_bin = xgb.XGBClassifier(n_estimators=150, max_depth=5, learning_rate=0.05, 
-                                     scale_pos_weight=scale, random_state=42, eval_metric="auc")
+        clf_bin = xgb.XGBClassifier(**bin_params)
         clf_bin.fit(X_tr, y_tr)
         probs = clf_bin.predict_proba(X_te)[:, 1]
         
         binary_aucs.append(roc_auc_score(y_te, probs))
         binary_sens.append(sensitivity_at_specificity(y_te, probs, 0.95))
         
-        # Multi-class Model
         le = LabelEncoder()
         ym_tr_enc = le.fit_transform(ym_tr)
         ym_te_enc = le.transform(ym_te)
-        clf_mul = xgb.XGBClassifier(n_estimators=150, max_depth=5, learning_rate=0.05, random_state=42)
+        clf_mul = xgb.XGBClassifier(**mul_params)
         clf_mul.fit(X_tr, ym_tr_enc)
         multi_accs.append(accuracy_score(ym_te_enc, clf_mul.predict(X_te)))
         
-        # Stage I Evaluation: Stage I Cancer vs ALL Healthy in this fold
-        # Stage I samples:
         s1_mask = st_te.astype(str).str.upper().isin(["I", "STAGE I", "1"])
         h_mask = ym_te.astype(str).str.lower().eq("healthy")
         
@@ -115,23 +144,41 @@ def run_classification_pipeline(X: pd.DataFrame, y_bin: pd.Series, y_mul: pd.Ser
         "mean_sensitivity_95spec": np.mean(binary_sens),
         "mean_multi_accuracy": np.mean(multi_accs),
         "mean_stage_I_auc": np.mean(stage_I_aucs) if stage_I_aucs else 0.0,
-        "mean_stage_I_sensitivity": np.mean(stage_I_sens) if stage_I_sens else 0.0
+        "mean_stage_I_sensitivity": np.mean(stage_I_sens) if stage_I_sens else 0.0,
+        "best_params": bin_params
     }
     log.info("Results for %s: AUC=%.3f, Acc=%.3f, Stage-I AUC=%.3f", 
              tag, res['mean_auc'], res['mean_multi_accuracy'], res['mean_stage_I_auc'])
     return res
-
 
 def main() -> None:
     t0 = time.time()
     try:
         X_t, X_e, y_b, y_m, stages = load_feature_matrix()
         
-        # Increase trials indirectly by estimators/depth in this turn
         res_topo = run_classification_pipeline(X_t, y_b, y_m, stages, "topology_xgboost")
         res_expr = run_classification_pipeline(X_e, y_b, y_m, stages, "expression_xgboost")
         
-        pd.DataFrame([res_topo, res_expr]).to_csv(cfg.models_dir / "cv_results.csv", index=False)
+        pd.DataFrame([{k: v for k, v in r.items() if k != "best_params"} for r in [res_topo, res_expr]]).to_csv(cfg.models_dir / "cv_results.csv", index=False)
+        
+        final_model = xgb.XGBClassifier(**res_topo["best_params"])
+        final_model.fit(X_t, y_b)
+        
+        import pickle
+        import shap
+        import json
+        with open(cfg.models_dir / "best_model.pkl", "wb") as f:
+            pickle.dump(final_model, f)
+            
+        with open(cfg.models_dir / "topology_feature_names.json", "w", encoding="utf-8") as f:
+            json.dump(list(X_t.columns), f)
+            
+        # Compute SHAP
+        explainer = shap.TreeExplainer(final_model)
+        shap_vals = explainer.shap_values(X_t)
+        np.save(cfg.models_dir / "shap_values.npy", shap_vals)
+        np.save(cfg.models_dir / "shap_base_values.npy", np.array([explainer.expected_value]))
+        
         write_phase_metrics(5, {"status": "ok", "runs": [res_topo, res_expr]}, elapsed_sec=time.time()-t0)
         
     except Exception:

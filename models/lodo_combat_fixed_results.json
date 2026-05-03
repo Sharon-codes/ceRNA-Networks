@@ -1,0 +1,50 @@
+[
+  {
+    "held_out_dataset": "GSE101684",
+    "n_test": 8,
+    "n_cancer": 4,
+    "n_healthy": 4,
+    "auc": 0.4375,
+    "ci_lo": 0.0,
+    "ci_hi": 1.0,
+    "ap": 0.6488,
+    "sens_95spec": 0.25,
+    "batch_correction": "ComBat (train-only, unsupervised)"
+  },
+  {
+    "held_out_dataset": "GSE126094",
+    "n_test": 20,
+    "n_cancer": 10,
+    "n_healthy": 10,
+    "auc": 0.66,
+    "ci_lo": 0.3737,
+    "ci_hi": 0.9167,
+    "ap": 0.7664,
+    "sens_95spec": 0.3,
+    "batch_correction": "ComBat (train-only, unsupervised)"
+  },
+  {
+    "held_out_dataset": "GSE115513",
+    "n_test": 1513,
+    "n_cancer": 864,
+    "n_healthy": 649,
+    "auc": 0.5399,
+    "ci_lo": 0.5134,
+    "ci_hi": 0.5687,
+    "ap": 0.6384,
+    "sens_95spec": 0.1169,
+    "batch_correction": "ComBat (train-only, unsupervised)"
+  },
+  {
+    "held_out_dataset": "GSE73002",
+    "n_test": 4113,
+    "n_cancer": 1373,
+    "n_healthy": 2740,
+    "auc": 0.7491,
+    "ci_lo": 0.7339,
+    "ci_hi": 0.7637,
+    "ap": 0.5229,
+    "sens_95spec": 0.1224,
+    "batch_correction": "ComBat (train-only, unsupervised)"
+  }
+]

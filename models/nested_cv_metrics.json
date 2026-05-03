@@ -1,0 +1,25 @@
+{
+  "method": "Nested CV (Optuna inside each outer fold)",
+  "outer_folds": 5,
+  "inner_folds": 3,
+  "optuna_trials_per_fold": 50,
+  "n_samples": 5654,
+  "n_cancer": 2251,
+  "n_healthy": 3403,
+  "aggregate_auc": 0.9995,
+  "aggregate_auc_95ci_lo": 0.9993,
+  "aggregate_auc_95ci_hi": 0.9997,
+  "aggregate_sens_at_95spec": 0.9991,
+  "aggregate_ap": 0.9993,
+  "fold_mean_auc": 0.9995,
+  "fold_std_auc": 0.0004,
+  "fold_ci_lo": 0.9992,
+  "fold_ci_hi": 0.9998,
+  "per_fold_auc": [
+    0.9992,
+    0.9994,
+    0.9992,
+    1.0,
+    0.9998
+  ]
+}

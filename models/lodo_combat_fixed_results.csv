@@ -1,0 +1,5 @@
+held_out_dataset,n_test,n_cancer,n_healthy,auc,ci_lo,ci_hi,ap,sens_95spec,batch_correction
+GSE101684,8,4,4,0.4375,0.0,1.0,0.6488,0.25,"ComBat (train-only, unsupervised)"
+GSE126094,20,10,10,0.66,0.3737,0.9167,0.7664,0.3,"ComBat (train-only, unsupervised)"
+GSE115513,1513,864,649,0.5399,0.5134,0.5687,0.6384,0.1169,"ComBat (train-only, unsupervised)"
+GSE73002,4113,1373,2740,0.7491,0.7339,0.7637,0.5229,0.1224,"ComBat (train-only, unsupervised)"

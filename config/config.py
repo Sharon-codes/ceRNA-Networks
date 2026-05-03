@@ -37,6 +37,26 @@ class Config:
             "miRNA_multicancer": "GSE73002",
         }
     )
+    extra_circrna_geo: Tuple[str, ...] = (
+        "GSE168030",
+    )
+    extra_mirna_geo: Tuple[str, ...] = (
+        "GSE113740",
+        "GSE122497",
+        "GSE164174",
+    )
+    dataset_platforms: Dict[str, str] = field(
+        default_factory=lambda: {
+            "GSE73002": "whole_blood_microarray",
+            "GSE115513": "exosome_rnaseq",
+            "GSE126094": "plasma_rnaseq",
+            "GSE101684": "serum_rnaseq",
+            "GSE164174": "plasma_rnaseq",
+            "GSE122497": "serum_mirna",
+            "GSE113740": "serum_mirna",
+            "GSE168030": "plasma_rnaseq",
+        }
+    )
 
     mirtarbase_urls: Tuple[str, ...] = (
         "https://mirtarbase.cuhk.edu.cn/~miRTarBase/miRTarBase_2025/cache/download/miRTarBase_MTI.xlsx",
@@ -53,6 +73,8 @@ class Config:
     min_cpm: float = 1.0
     circrna_min_sample_frac: float = 0.30
     mirna_min_sample_frac: float = 0.20
+    expression_activation_percentile: float = 25.0
+    min_lodo_samples: int = 100
 
     n_cv_folds: int = 5
     optuna_trials: int = 10

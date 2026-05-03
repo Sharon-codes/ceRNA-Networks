@@ -75,7 +75,8 @@ def _representative_subgraph(
     Returns:
         Representative ``DiGraph`` for layout.
     """
-    ids = [p for p in patient_ids if p in patient_graphs]
+    graph_keys_str = {str(k): k for k in patient_graphs.keys()}
+    ids = [graph_keys_str[str(p)] for p in patient_ids if str(p) in graph_keys_str]
     if not ids:
         return nx.DiGraph()
     edge_counts: Dict[Tuple[str, str], int] = {}
@@ -85,8 +86,17 @@ def _representative_subgraph(
         for e in edges:
             edge_counts[e] = edge_counts.get(e, 0) + 1
     n = len(ids)
-    thr = max(1.0, 0.5 * n)
-    freq = [e for e, c in edge_counts.items() if c >= thr]
+    # Start with 50% threshold, lower iteratively if needed
+    thr_ratios = [0.5, 0.3, 0.1, 0.05, 0.01]
+    freq = []
+    for r in thr_ratios:
+        thr = max(1.0, r * n)
+        freq = [e for e, c in edge_counts.items() if c >= thr]
+        if freq:
+            break
+    if not freq and edge_counts:
+        # fallback to top 100 most frequent edges
+        freq = [e for e, c in sorted(edge_counts.items(), key=lambda x: x[1], reverse=True)[:100]]
 
     ref_id = ids[0]
     ref = patient_graphs[ref_id]
@@ -127,9 +137,9 @@ def plot_network_comparison(patient_graphs: dict, metadata: pd.DataFrame) -> Non
     if "cancer_type" not in meta.columns:
         log.warning("metadata missing cancer_type — skip Fig 2")
         return
-    healthy_ids = meta[meta["cancer_type"].astype(str).str.lower() == "healthy"].index.tolist()
-    stage_col = meta["stage"].astype(str).str.upper() if "stage" in meta.columns else pd.Series("unknown", index=meta.index)
-    cancer_ids = meta[(meta["cancer_type"].astype(str).str.lower() != "healthy") & (stage_col == "I")].index.tolist()
+    healthy_ids = meta[meta["cancer_type"].astype(str).str.lower().str.strip() == "healthy"].index.astype(str).tolist()
+    stage_col = meta["stage"].astype(str).str.upper().str.strip() if "stage" in meta.columns else pd.Series("unknown", index=meta.index)
+    cancer_ids = meta[(meta["cancer_type"].astype(str).str.lower().str.strip() != "healthy") & (stage_col == "I")].index.astype(str).tolist()
 
     fig, axes = plt.subplots(1, 2, figsize=(16, 7))
 
@@ -272,14 +282,20 @@ def plot_stage_stratification(
 ) -> None:
     """Fig 5: boxplot score by stage."""
     log.info("Fig 5: stage stratification")
+    stages_clean = []
+    for t, s in zip(y_true, stages):
+        if not t:
+            stages_clean.append("Healthy")
+        else:
+            stages_clean.append(str(s).upper().strip())
     df = pd.DataFrame(
         {
             "model_score": all_preds,
-            "stage": [str(s).upper() for s in stages],
+            "stage": stages_clean,
             "true_label": np.where(y_true, "Cancer", "Healthy"),
         }
     )
-    order = ["I", "II", "III", "IV"]
+    order = ["Healthy", "I", "II", "III", "IV"]
     df = df[df["stage"].isin(order)]
     if df.empty:
         log.warning("No staged samples — skip Fig 5")
@@ -320,7 +336,11 @@ def main() -> None:
         gp = cfg.network_dir / "graphs.pkl"
         if gp.exists():
             with open(gp, "rb") as f:
-                graphs = pickle.load(f)
+                graphs_raw = pickle.load(f)
+                if isinstance(graphs_raw, list):
+                    graphs = {str(g.graph.get("patient_id", f"unknown_{i}")): g for i, g in enumerate(graphs_raw)}
+                else:
+                    graphs = graphs_raw
         meta_path = cfg.processed_dir / "metadata.csv"
         metadata = pd.read_csv(meta_path, index_col=0) if meta_path.exists() else pd.DataFrame()
 

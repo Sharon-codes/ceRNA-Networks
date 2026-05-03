@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
@@ -84,7 +85,8 @@ def build_all_patient_graphs(
     global_g: nx.Graph, 
     circ_df: pd.DataFrame, 
     mirna_df: pd.DataFrame,
-    metadata_df: pd.DataFrame
+    metadata_df: pd.DataFrame,
+    activation_threshold: Optional[float] = None,
 ) -> List[nx.Graph]:
     # 1. Map miRNA IDs
     mir_map = load_mirbase_map()
@@ -103,14 +105,36 @@ def build_all_patient_graphs(
     
     # Pre-calculate active nodes for global network nodes
     global_nodes = list(global_g.nodes)
+
+    if activation_threshold is None:
+        expressed_values = []
+        for mat in (circ_df, mirna_df):
+            if not mat.empty:
+                vals = mat.to_numpy(dtype=float, copy=False).ravel()
+                expressed_values.append(vals[vals > 0])
+        if expressed_values:
+            activation_threshold = float(
+                np.percentile(
+                    np.concatenate(expressed_values),
+                    cfg.expression_activation_percentile,
+                )
+            )
+        else:
+            activation_threshold = 0.0
+    log.info(
+        "Using cross-patient expression activation threshold %.6g (%.1f percentile).",
+        activation_threshold,
+        cfg.expression_activation_percentile,
+    )
     
     for pid in tqdm(all_pids, desc="Graph Construction"):
         p_circ = circ_df[pid] if pid in circ_cols_set else circ_mean
         p_mir = mirna_df[pid] if pid in mir_cols_set else mir_mean
         
-        # Use fast set operations
-        active_c = set(p_circ.index[p_circ > 0])
-        active_m = set(p_mir.index[p_mir > 0])
+        # Use one cohort-level threshold so sequencing depth does not create
+        # patient-specific graph density shifts.
+        active_c = set(p_circ.index[p_circ > activation_threshold])
+        active_m = set(p_mir.index[p_mir > activation_threshold])
         
         # Filter nodes that exist in global graph
         exist_c = active_c.intersection(global_g.nodes)

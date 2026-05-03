@@ -179,6 +179,9 @@ def load_mirbase_map() -> Dict[str, str]:
 
 def parse_geo_soft(geo_id: str, dest: Path) -> GEOparse.GSE:
     soft_file = dest / f"{geo_id}_family.soft.gz"
+    if soft_file.exists() and soft_file.stat().st_size == 0:
+        log.warning("Removing empty/incomplete SOFT file for %s: %s", geo_id, soft_file)
+        soft_file.unlink()
     if not soft_file.exists():
         log.info("Downloading %s to %s", geo_id, dest)
         dest.mkdir(parents=True, exist_ok=True)
@@ -248,7 +251,21 @@ def cpm_normalize(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def merge_and_save():
-    unique_circ = sorted({cfg.geo_datasets["circRNA_CRC"], cfg.geo_datasets["circRNA_lung"], cfg.geo_datasets["circRNA_atlas"]})
+    unique_circ = sorted(
+        {
+            cfg.geo_datasets["circRNA_CRC"],
+            cfg.geo_datasets["circRNA_lung"],
+            cfg.geo_datasets["circRNA_atlas"],
+            *cfg.extra_circrna_geo,
+        }
+    )
+    unique_mirna = sorted(
+        {
+            cfg.geo_datasets["miRNA_CRC"],
+            cfg.geo_datasets["miRNA_multicancer"],
+            *cfg.extra_mirna_geo,
+        }
+    )
     
     circ_counts = pd.DataFrame()
     circ_metas = []
@@ -266,15 +283,22 @@ def merge_and_save():
             log.warning("Skipping circRNA %s: %s", gid, e)
             
     # miRNA
-    try:
-        mir_crc, meta_crc = load_mirna_gse(cfg.geo_datasets["miRNA_CRC"], cfg.raw_dir / cfg.geo_datasets["miRNA_CRC"])
-        mir_multi, meta_multi = load_mirna_gse(cfg.geo_datasets["miRNA_multicancer"], cfg.raw_dir / cfg.geo_datasets["miRNA_multicancer"])
-        
-        mir_counts = mir_crc.join(mir_multi[mir_multi.columns.difference(mir_crc.columns)], how="outer").fillna(0.0)
-        mir_meta = pd.concat([meta_crc, meta_multi], axis=0)
-    except Exception as e:
-        log.error("miRNA loading failed: %s", e)
-        raise
+    mir_counts = pd.DataFrame()
+    mir_metas = []
+    for gid in unique_mirna:
+        try:
+            c, m = load_mirna_gse(gid, cfg.raw_dir / gid)
+            if mir_counts.empty:
+                mir_counts = c
+            else:
+                new_cols = c.columns.difference(mir_counts.columns)
+                mir_counts = mir_counts.join(c[new_cols], how="outer").fillna(0.0)
+            mir_metas.append(m)
+        except Exception as e:
+            log.warning("Skipping miRNA %s: %s", gid, e)
+
+    if mir_counts.empty:
+        raise RuntimeError("No miRNA datasets loaded successfully")
 
     circ_cpm = cpm_normalize(circ_counts)
     mir_rpm = cpm_normalize(mir_counts)
@@ -284,7 +308,7 @@ def merge_and_save():
     circ_cpm.to_csv(cfg.processed_dir / "circRNA_counts.csv")
     mir_rpm.to_csv(cfg.processed_dir / "miRNA_counts.csv")
     
-    all_meta = pd.concat(circ_metas + [mir_meta], axis=0)
+    all_meta = pd.concat(circ_metas + mir_metas, axis=0)
     all_meta = all_meta[~all_meta.index.duplicated(keep="first")]
     all_meta.to_csv(cfg.processed_dir / "metadata.csv")
     
