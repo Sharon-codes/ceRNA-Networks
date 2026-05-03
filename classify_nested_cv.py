@@ -53,80 +53,101 @@ with open(FEAT_NAMES) as f:
 
 X = df.reindex(columns=topo_cols).apply(pd.to_numeric, errors="coerce").fillna(0.0)
 y = (df["cancer_type"].fillna("unknown").str.lower() != "healthy").astype(int)
+groups = df["dataset"].fillna("unknown")
+
+# Platform mapping from config if possible
+try:
+    from config.config import cfg
+    platforms = df["dataset"].map(cfg.dataset_platforms).fillna("unknown")
+except Exception:
+    platforms = pd.Series("unknown", index=df.index)
 
 logger.info(f"  n={len(X)}, cancer={y.sum()}, healthy={(y==0).sum()}, features={X.shape[1]}")
+
+# ── Robust Preprocessing ──────────────────────────────────────────────────────
+def harmonize_split(X_train, groups_train, X_test, groups_test=None):
+    """Split-local harmonization to prevent leakage while handling batch effects."""
+    grand_mean = X_train.mean(axis=0)
+    grand_std  = X_train.std(axis=0).replace(0, 1.0)
+    
+    # Simple Z-score based on training grand stats
+    X_tr_h = (X_train - grand_mean) / grand_std
+    X_te_h = (X_test - grand_mean) / grand_std
+    
+    # Add platform dummies (only for platforms seen in training)
+    train_dummies = pd.get_dummies(groups_train, prefix="plat")
+    test_dummies = pd.get_dummies(groups_test, prefix="plat").reindex(columns=train_dummies.columns, fill_value=0)
+    
+    X_tr_final = pd.concat([X_tr_h, train_dummies], axis=1)
+    X_te_final = pd.concat([X_te_h, test_dummies], axis=1)
+    
+    return X_tr_final.fillna(0.0), X_te_final.fillna(0.0)
 
 # ── Sensitivity at fixed specificity ──────────────────────────────────────────
 def sensitivity_at_specificity(y_true, y_score, target_spec=0.95):
     fpr, tpr, _ = roc_curve(y_true, y_score)
     spec = 1 - fpr
-    # find closest specificity >= target
     idx = np.where(spec >= target_spec)[0]
-    if len(idx) == 0:
-        return 0.0
+    if len(idx) == 0: return 0.0
     return float(tpr[idx[-1]])
 
 # ── Nested CV ─────────────────────────────────────────────────────────────────
-outer_cv = StratifiedKFold(n_splits=OUTER_FOLDS, shuffle=True, random_state=SEED)
+from sklearn.model_selection import StratifiedGroupKFold
+
+n_splits = min(OUTER_FOLDS, groups.nunique())
+outer_cv = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=SEED)
 
 fold_results = []
-oof_proba   = np.zeros(len(y))   # out-of-fold probabilities for aggregate AUC
+oof_proba   = np.zeros(len(y))
 
-logger.info(f"\nStarting nested {OUTER_FOLDS}-fold CV with {N_TRIALS} Optuna trials per fold...")
+logger.info(f"\nStarting robust nested {n_splits}-fold CV (dataset-stratified)...")
 
-for fold_idx, (train_idx, test_idx) in enumerate(outer_cv.split(X, y)):
-    logger.info(f"\n── Outer Fold {fold_idx + 1}/{OUTER_FOLDS} ──")
+for fold_idx, (train_idx, test_idx) in enumerate(outer_cv.split(X, y, groups)):
+    held_out = groups.iloc[test_idx].unique()
+    logger.info(f"\n── Outer Fold {fold_idx + 1}/{n_splits} | Held out: {held_out} ──")
 
-    X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+    X_tr_raw, X_te_raw = X.iloc[train_idx], X.iloc[test_idx]
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+    g_train, g_test = groups.iloc[train_idx], groups.iloc[test_idx]
 
-    n_pos = int(y_train.sum())
-    n_neg = int((y_train == 0).sum())
+    # Preprocess
+    X_train, X_test = harmonize_split(X_tr_raw, g_train, X_te_raw, g_test)
+
+    n_pos = int(y_train.sum()); n_neg = int((y_train == 0).sum())
     spw   = n_neg / max(n_pos, 1)
 
-    # ── INNER: Optuna tunes ONLY on training fold ──────────────────────────
-    inner_cv = StratifiedKFold(n_splits=INNER_FOLDS, shuffle=True, random_state=SEED)
+    # ── INNER: Optuna ──
+    n_inner = min(INNER_FOLDS, g_train.nunique())
+    inner_cv = StratifiedGroupKFold(n_splits=n_inner, shuffle=True, random_state=SEED)
 
     def objective(trial):
         params = {
-            "n_estimators":     trial.suggest_int("n_estimators", 100, 400),
-            "max_depth":        trial.suggest_int("max_depth", 3, 8),
-            "learning_rate":    trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
-            "subsample":        trial.suggest_float("subsample", 0.6, 1.0),
-            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
-            "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
-            "gamma":            trial.suggest_float("gamma", 0.0, 3.0),
-            "reg_alpha":        trial.suggest_float("reg_alpha", 0.01, 10.0, log=True),
-            "reg_lambda":       trial.suggest_float("reg_lambda", 0.01, 10.0, log=True),
+            "n_estimators":     trial.suggest_int("n_estimators", 100, 300),
+            "max_depth":        trial.suggest_int("max_depth", 3, 6),
+            "learning_rate":    trial.suggest_float("learning_rate", 0.01, 0.1, log=True),
+            "subsample":        0.8,
+            "colsample_bytree": 0.8,
             "scale_pos_weight": spw,
-            "use_label_encoder": False,
             "eval_metric":      "logloss",
             "random_state":     SEED,
         }
         inner_aucs = []
-        for tr_i, val_i in inner_cv.split(X_train, y_train):
+        for tr_i, val_i in inner_cv.split(X_tr_raw, y_train, g_train):
+            # Harmonize inner split
+            X_i_tr, X_i_val = harmonize_split(X_tr_raw.iloc[tr_i], g_train.iloc[tr_i], X_tr_raw.iloc[val_i], g_train.iloc[val_i])
             m = xgb.XGBClassifier(**params)
-            m.fit(X_train.iloc[tr_i], y_train.iloc[tr_i], verbose=False)
-            prob = m.predict_proba(X_train.iloc[val_i])[:, 1]
-            try:
-                inner_aucs.append(roc_auc_score(y_train.iloc[val_i], prob))
-            except ValueError:
-                inner_aucs.append(0.5)
+            m.fit(X_i_tr, y_train.iloc[tr_i], verbose=False)
+            prob = m.predict_proba(X_i_val)[:, 1]
+            inner_aucs.append(roc_auc_score(y_train.iloc[val_i], prob))
         return float(np.mean(inner_aucs))
 
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=SEED))
     study.optimize(objective, n_trials=N_TRIALS, show_progress_bar=False)
 
     best_params = study.best_params
-    best_params.update({
-        "scale_pos_weight":  spw,
-        "use_label_encoder": False,
-        "eval_metric":       "logloss",
-        "random_state":      SEED,
-    })
-    logger.info(f"  Best inner AUC: {study.best_value:.4f} | params: {best_params}")
-
-    # ── OUTER: Evaluate on held-out test fold ──────────────────────────────
+    best_params.update({"scale_pos_weight": spw, "eval_metric": "logloss", "random_state": SEED})
+    
+    # ── OUTER: Evaluation ──
     final_model = xgb.XGBClassifier(**best_params)
     final_model.fit(X_train, y_train, verbose=False)
 
@@ -136,18 +157,17 @@ for fold_idx, (train_idx, test_idx) in enumerate(outer_cv.split(X, y)):
     fold_auc  = roc_auc_score(y_test, proba)
     fold_ap   = average_precision_score(y_test, proba)
     fold_sens = sensitivity_at_specificity(y_test.values, proba, 0.95)
-    fold_f1   = f1_score(y_test, (proba >= 0.5).astype(int), zero_division=0)
 
-    logger.info(f"  Fold AUC={fold_auc:.4f}  AP={fold_ap:.4f}  Sens@95spec={fold_sens:.4f}")
+    logger.info(f"  Fold AUC={fold_auc:.4f}  Sens@95spec={fold_sens:.4f}")
     fold_results.append({
         "fold":       fold_idx + 1,
-        "n_test":     len(y_test),
+        "held_out":   ", ".join(held_out),
         "auc":        round(fold_auc, 4),
-        "ap":         round(fold_ap, 4),
         "sens_95spec":round(fold_sens, 4),
-        "f1":         round(fold_f1, 4),
         "best_params": json.dumps(best_params),
     })
+
+
 
 # ── Aggregate metrics ─────────────────────────────────────────────────────────
 cv_df = pd.DataFrame(fold_results)

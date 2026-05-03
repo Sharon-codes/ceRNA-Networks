@@ -1,0 +1,14 @@
+{
+  "model": "Elastic Net (Logistic Regression)",
+  "data": "Full circRNA log2(CPM+1) expression matrix",
+  "n_samples": 4668,
+  "n_features": 2000,
+  "aggregate_auc": 0.9796,
+  "aggregate_auc_95ci": [
+    0.9759,
+    0.9835
+  ],
+  "aggregate_sens_at_95spec": 0.9424,
+  "fold_mean_auc": 0.9793,
+  "fold_std_auc": 0.005
+}

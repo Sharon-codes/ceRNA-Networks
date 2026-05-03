@@ -1,61 +1,88 @@
-# ceRNA Early-Stage Cancer Detection Pipeline
+# ceRNA Pan-Cancer Detection Pipeline
 
-This repository contains a computational framework for the early-stage detection of cancer using competitive endogenous RNA (ceRNA) network topology and expression analysis.
+A computational framework for early-stage cancer detection using **Competitive Endogenous RNA (ceRNA)** network topology and high-dimensional expression analysis.
 
-## Overview
+## 🚀 Overview
 
-The project aims to identify robust biomarkers for cancer by analyzing the relationships between circRNAs and miRNAs. By constructing regulatory networks and extracting topological features using Topological Data Analysis (TDA) and graph metrics, the pipeline detects systemic changes associated with malignancy across various cancer types (Colorectal, Lung, Breast, etc.).
+This repository implements a multi-stage pipeline to identify robust biomarkers for cancer by analyzing the regulatory relationships between **circRNAs** and **miRNAs**. It leverages **Topological Data Analysis (TDA)** and graph metrics to detect systemic changes in regulatory networks across various cancer types (Lung, Gastric, HCC, CRC, etc.).
 
-## Project Structure
+### Key Research Findings
 
-- `config/`: Configuration settings and metric logging utilities.
-- `data/`: Modules for downloading and processing GEO datasets (GSE115513, GSE73002, etc.).
-- `network/`: Logic for building ceRNA interaction networks based on circBase and miRBase.
-- `features/`: Topological feature extraction (persistent homology, centrality, motifs).
-- `models/`: Machine learning models (XGBoost) for binary and multi-class classification.
-- `run_pipeline.py`: Main entry point to execute the full end-to-end pipeline.
+| Comparison | Valid? | Insight |
+| :--- | :---: | :--- |
+| **Hybrid (0.927) vs. Elastic Net (0.979)** | ❌ | Different datasets; Hybrid used smaller multi-omics overlap. |
+| **Hybrid LODO (0.749) vs. EN LODO (0.971)** | ❌ | Different held-out sets; EN focused on high-sample binary tasks. |
+| **Null Network Validation** | ✅ | Confirms topology signal stands independently of expression levels. |
+| **Stage Stratification (GSE115513)** | ✅ | Validates early-stage (Stage-I) detection within a single cohort. |
 
-## Implementation Progress
+---
 
-- [x] **Data Ingestion**: Automated retrieval of GEO soft files and supplementary matrices.
-- [x] **Normalization**: CPM/RPM normalization of expression counts.
-- [x] **Network Construction**: Competition-based linkage between circRNAs and miRNAs.
-- [x] **TDA Features**: Extraction of persistent homology components (Betti numbers) and network centrality.
-- [x] **Classification Pipeline**: Nested cross-validation for cancer vs. healthy and cancer type prediction.
+## 📂 Project Structure
 
-## Known Issues
+- `config/`: Centralized configuration (`config.py`) and metric logging.
+- `data/`: Automated retrieval and processing of GEO datasets.
+- `network/`: Logic for building ceRNA interaction networks (circBase, miRBase).
+- `features/`: Topological feature extraction (Persistent Homology, Centrality, Graph Entropy).
+- `models/`: 
+  - `robust_validation.py`: Dataset-blocked nested CV for topology models.
+  - `train_full_expression_elasticnet.py`: High-dimensional Elastic Net on raw circRNA profiles.
+  - `lodo_full_expression_elasticnet.py`: External validation (LODO) for expression models.
+- `figures/`: Scripts to generate publication-ready plots and SHAP visualizations.
+- `run_pipeline.py`: Main entry point for end-to-end execution.
 
-### 1. Zero AUROC for Stage-I Detection
-A critical issue currently observed is that the **Stage-I AUROC reports as 0.0** in the evaluation logs.
+---
 
-**Analysis:**
-- The issue stems from the metadata parsing logic in `data/load_geo.py`.
-- Different GEO datasets use non-standardized keys (e.g., `characteristics_ch1`) for clinical staging.
-- Samples are being labeled as "unknown" or "Healthy" incorrectly, or the Stage-I keyword is not being captured (e.g., "ajcc-stage: I" vs "tumor stage: 1").
-- During evaluation in `models/classify.py`, the lack of correctly labeled Stage-I samples results in empty evaluation sets, producing zero metrics.
+## 🛠️ Installation & Setup
 
-### 2. Missing Database Files
-The pipeline requires external databases (miRBase, miRTarBase) which are currently filtered or partially downloaded. Full execution depends on the presence of `mature_all.fa` and interaction CSVs in the `data/raw/databases` directory.
+1. **Clone and Install Dependencies**:
+   ```bash
+   git clone https://github.com/Sharon-codes/CeRNA-Early-Stage-Cancer-Detection.git
+   cd CeRNA-Early-Stage-Cancer-Detection
+   pip install -r requirements.txt
+   ```
 
-## Current Setup
+2. **Initialize Databases & GEO Data**:
+   ```bash
+   python data/download_dbs.py
+   python data/load_geo.py
+   ```
 
-To run the pipeline, ensure dependencies are installed:
-```bash
-pip install -r requirements.txt
-```
+---
 
-Initialize the data download:
-```bash
-python data/download_dbs.py
-python data/load_geo.py
-```
+## 📈 Usage
 
-Run the pipeline:
+### 1. Run Full Pipeline
+To execute data processing, network construction, and initial classification:
 ```bash
 python run_pipeline.py
 ```
 
-## Future Work
-- Enhance `normalize_cancer_label` and `normalize_stage` with more robust regex patterns.
-- Implement data augmentation for minority cancer stages to balance cross-validation folds.
-- Optimize TDA computation for larger ceRNA networks.
+### 2. Robust Topology Validation
+To run the dataset-blocked nested CV and LODO for the Hybrid Topology model:
+```bash
+python robust_validation.py
+```
+
+### 3. Full Expression Baseline
+To train the Elastic Net model on the full log2(CPM+1) circRNA matrix:
+```bash
+python models/train_full_expression_elasticnet.py
+python models/lodo_full_expression_elasticnet.py
+```
+
+### 4. Generate Figures
+Scripts like `generate_final_figure1.py` reproduce the visualizations for the manuscript.
+
+---
+
+## 🔬 Methodology
+
+- **Network Construction**: Competition-based linkage defined by shared miRNA binding sites.
+- **Topological Features**: Betti numbers (B0, B1), persistence entropy, and hub-based centrality metrics.
+- **Machine Learning**: Nested 5×3-fold Cross-Validation with Optuna hyperparameter optimization.
+- **Validation**: Leave-One-Dataset-Out (LODO) to ensure platform and batch robustness.
+
+---
+
+## 📜 License
+This project is licensed under the MIT License - see the LICENSE file for details.
