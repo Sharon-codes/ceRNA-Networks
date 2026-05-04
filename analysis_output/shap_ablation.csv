@@ -1,7 +1,0 @@
-removed_group,n_features,auc,n_features_removed,n_features_remaining,auc_drop
-none (full model),21.0,0.9191830257225829,,,
-degree_centrality,,0.9163,4.0,17.0,0.0029
-betweenness_centrality,,0.9189,1.0,20.0,0.0003
-clustering,,0.9192,1.0,20.0,0.0
-pagerank,,0.9192,1.0,20.0,0.0
-hub_score,,0.9161,2.0,19.0,0.0031

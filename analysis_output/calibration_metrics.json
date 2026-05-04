@@ -1,4 +1,0 @@
-{
-  "brier_score": 0.10475,
-  "note": "Brier < 0.10 = well calibrated for clinical use. Brier < 0.20 = acceptable. Brier > 0.25 = needs Platt/isotonic recalibration."
-}

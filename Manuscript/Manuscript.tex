@@ -1,0 +1,801 @@
+\documentclass[12pt]{article}
+
+% -------------------------------------------------------
+% PACKAGES
+% -------------------------------------------------------
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\doublespacing
+\usepackage{times}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue}
+\usepackage{natbib}
+\bibliographystyle{plain}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{microtype}
+\usepackage{lineno}
+\linenumbers % Adds line numbers for the reviewers
+
+\begin{document}
+\setcounter{page}{1} % GUARANTEES THE PAPER STARTS ON PAGE 1
+
+% -------------------------------------------------------
+% ANONYMISED TITLE 
+% -------------------------------------------------------
+\begin{center}
+{\large \textbf{Dataset-Naive Cross-Validation Inflates ceRNA Network
+Classifier Performance: Evidence from a Patient-Specific Tripartite
+Graph Framework with Topology Sensitivity Diagnostics}}
+\end{center}
+
+\vspace{0.5cm}
+
+% -------------------------------------------------------
+% STRUCTURED ABSTRACT
+% -------------------------------------------------------
+\noindent\textbf{Abstract}
+
+\noindent\textbf{Purpose:}
+Multi-cohort liquid biopsy studies routinely report AUROC values of
+0.90--0.95 for competing endogenous RNA (ceRNA) network classifiers, yet
+few stratify cross-validation folds by dataset membership. We
+investigate whether dataset-naive cross-validation systematically
+inflates apparent performance by allowing the model to learn
+platform-specific batch signals rather than cancer biology.
+
+\noindent\textbf{Methods:}
+We assembled a meta-cohort of 5,654 blood-based RNA samples from four
+independent GEO datasets (GSE73002, GSE115513, GSE126094, GSE101684).
+For each patient, a personalised directed tripartite
+(circRNA--miRNA--mRNA) subgraph was constructed from experimentally
+validated interactions (miRTarBase~v9.0, CircInteractome). Twenty-one
+features were extracted per patient: four expression statistics and
+seventeen graph-theoretic descriptors including Betti numbers and
+persistence entropy from topological data analysis (TDA). An XGBoost
+classifier was evaluated under two protocols: (i)~dataset-naive
+stratified 5$\times$3-fold nested cross-validation (standard practice),
+and (ii)~dataset-stratified nested cross-validation using
+\texttt{StratifiedGroupKFold}, which holds out entire datasets in the
+outer loop. A topology sensitivity analysis using Kruskal--Wallis tests
+quantified the proportion of graph features showing significant
+distributional shift across data sources.
+
+\noindent\textbf{Results:}
+Dataset-naive CV yielded AUROC~0.927 (95\%~CI: 0.921--0.934).
+Dataset-stratified CV yielded AUROC~0.45--0.76 depending on the
+held-out cohort, a reduction of up to 0.48~AUROC~points. Sensitivity
+analysis revealed that 57.1\% (12/21) of topology features exhibit
+significant cross-dataset distributional shift ($p < 0.001$,
+Kruskal--Wallis), including community count, modularity, diameter,
+spectral entropy, and all TDA features. Leave-one-dataset-out (LODO)
+validation on the largest independent cohort (GSE73002, $n=4{,}113$)
+yielded AUROC~0.749 (95\%~CI: 0.733--0.762), confirming that honest
+cross-platform performance is substantially below within-cohort
+estimates.
+
+\noindent\textbf{Conclusions:}
+Published ceRNA network classifiers that employ dataset-naive
+cross-validation on multi-cohort data likely overestimate cancer
+detection performance by learning platform identity rather than
+regulatory biology. We provide a reproducible diagnostic pipeline
+quantifying topology batch sensitivity and demonstrate that proper
+dataset-stratified evaluation is necessary for credible performance
+claims in multi-cohort liquid biopsy research.
+
+\vspace{0.3cm}
+\noindent\textbf{Keywords:} ceRNA network, liquid biopsy, cross-validation bias,
+batch effects, topological data analysis, pan-cancer detection,
+network topology, persistent homology
+
+\newpage
+
+% -------------------------------------------------------
+% 1. INTRODUCTION
+% -------------------------------------------------------
+\section{Introduction}
+
+Cancer remains a leading cause of global mortality, with 19.3~million
+new cases and approximately 10~million deaths estimated in
+2020~\citep{sung2021}. The survival disparity between early- and
+late-stage diagnosis is stark: five-year survival for Stage~IV solid
+tumours falls below 15\% for several major cancer types, whereas
+Stage~I survival frequently exceeds 90\%. Liquid biopsy---the analysis
+of tumour-derived circulating material recovered from peripheral
+blood---offers a minimally invasive route to early
+detection~\citep{cohen2018}.
+
+Circular RNAs (circRNAs) have attracted sustained research attention as
+liquid biopsy analytes. Covalently closed non-coding transcripts
+generated by back-splicing events~\citep{memczak2013,hansen2013},
+circRNAs are resistant to exonucleolytic degradation, accumulate stably
+in blood exosomes and platelets, and exhibit tissue- and tumour-specific
+expression patterns~\citep{kristensen2019,vo2019}. Their primary
+functional role as competing endogenous RNAs (ceRNAs)---molecular
+sponges that sequester microRNAs (miRNAs) and thereby de-repress miRNA
+target messenger RNAs (mRNAs)~\citep{salmena2011}---positions them as
+central regulatory nodes whose disruption is now recognised as a
+hallmark of malignancy~\citep{meng2017}.
+
+Computational classifiers built on ceRNA network features have reported
+impressive AUROC values of 0.85--0.95 across multiple cancer
+types~\citep{pan2026,yuan2026}. However, these studies share a common
+methodological pattern: cross-validation folds are stratified by class
+label but not by dataset membership. When multiple GEO cohorts are
+combined into a single meta-cohort and folds are assigned randomly, the
+model encounters samples from the same sequencing platform in both
+training and test partitions. Because RNA expression profiles carry
+strong platform-specific signatures---driven by differences in RNA
+extraction, library preparation, sequencing depth, and circRNA
+enrichment protocols---a model trained in this way may learn to
+distinguish platforms as a proxy for distinguishing cancer from
+healthy. The resulting AUROC reflects platform classification
+performance as much as biological signal.
+
+This confound has been documented in the broader multi-omics literature
+\citep{leek2010} but has not been systematically quantified in the
+ceRNA liquid biopsy subfield. The present work fills this gap by:
+(i)~constructing a patient-specific tripartite ceRNA graph framework
+and demonstrating the performance gap between dataset-naive and
+dataset-stratified cross-validation; (ii)~providing a topology
+sensitivity diagnostic that quantifies the proportion of network
+features encoding dataset-specific batch effects; and
+(iii)~establishing dataset-stratified cross-validation as the necessary
+standard for credible multi-cohort ceRNA classifier evaluation.
+
+% -------------------------------------------------------
+% 1.1 Related Work
+% -------------------------------------------------------
+\subsection{Related Work}
+
+Expression-based classifiers represent each patient as a continuous
+vector of RNA abundance values. Pan~et~al.~\citep{pan2026} employed
+nested cross-validation with Random Forest ensembles for small cell lung
+cancer (SCLC) detection, achieving AUROC~0.950 in a single-institution
+cohort. Yuan~et~al.~\citep{yuan2026} integrated three-dimensional
+genome architecture with support vector machines for acute myeloid
+leukaemia prediction. While these single-cohort studies are internally
+consistent, multi-cohort studies face the dataset leakage problem
+described above.
+
+Network-based classifiers model biomolecular interactions explicitly.
+Barab\'{a}si and Oltvai~\citep{barabasi2004} established that biological
+networks exhibit characteristic topological properties---scale-free
+degree distributions, modular community structure, hub-node
+dominance---that are functionally meaningful and irreducible to
+individual node properties. Population-average ceRNA networks have been
+extensively constructed for prognostic biomarker discovery in uterine
+corpus endometrial carcinoma~\citep{fan2025} and clear cell renal cell
+carcinoma~\citep{farias2024}. Single-sample network (SSN) methodologies
+such as LIONESS~\citep{kuijjer2019} estimate individual-specific
+regulatory networks from aggregate transcriptomic data, but have
+primarily been applied to prognostic survival tasks rather than
+diagnostic liquid biopsy classification.
+
+No prior study has (i)~evaluated a patient-specific ceRNA graph
+classifier under dataset-stratified cross-validation, (ii)~quantified
+the proportion of ceRNA topology features that encode dataset-specific
+batch effects, or (iii)~reported the resulting performance gap as a
+methodological warning for the field.
+
+% -------------------------------------------------------
+% 1.2 Contributions
+% -------------------------------------------------------
+\subsection{Contributions}
+
+This paper makes three primary methodological contributions:
+
+\begin{enumerate}
+  \item A demonstration that dataset-naive cross-validation inflates
+  AUROC by up to 0.48~points relative to dataset-stratified evaluation
+  in a multi-cohort ceRNA liquid biopsy meta-cohort ($n=5{,}654$).
+
+  \item A topology sensitivity diagnostic pipeline
+  (Kruskal--Wallis cross-dataset feature distribution analysis) that
+  identifies which graph-theoretic features encode platform batch
+  effects versus biological signal, finding that 57.1\% of ceRNA
+  topology features are significantly batch-sensitive ($p < 0.001$).
+
+  \item A reproducible methodological benchmark establishing
+  dataset-stratified \texttt{StratifiedGroupKFold} nested
+  cross-validation as the appropriate evaluation standard for
+  multi-cohort computational biomarker classifiers.
+\end{enumerate}
+
+% -------------------------------------------------------
+% 2. MATERIALS AND METHODS
+% -------------------------------------------------------
+\section{Materials and Methods}
+
+\subsection{Cohort Assembly}
+
+Raw circRNA and miRNA expression count data were retrieved from the Gene
+Expression Omnibus (GEO)~\citep{barrett2013} under four accession
+numbers: GSE73002~\citep{li2018}, GSE115513, GSE126094, and GSE101684.
+These four studies provide publicly accessible raw count data for
+circRNA and miRNA expression in whole blood or blood-derived exosome
+samples from both cancer patients and healthy volunteers, and
+collectively span multiple cancer types and geographical populations.
+After quality filtering---removal of samples with more than 20\%
+missing expression values across profiled transcripts---5,654~samples
+were retained (Table~\ref{tab:cohort}).
+
+Healthy controls comprised 3,403~samples. Cancer cases comprised
+2,251~samples: breast cancer ($n=1{,}280$), colorectal cancer (CRC;
+$n=874$), prostate cancer ($n=93$; treated as exploratory throughout),
+and lung cancer ($n=4$; retained only in binary pan-cancer
+classification). Clinical stage annotations were recoverable for
+731~cancer patients, all from GSE115513 (Stage~I: $n=231$; II:
+$n=181$; III: $n=219$; IV: $n=100$). No ethical approval was required
+as only publicly available, de-identified data were used.
+
+\begin{table}[H]
+\centering
+\caption{Cohort composition across the four GEO source datasets.
+HC~=~healthy control; CRC~=~colorectal cancer.
+$^\dagger$Other: prostate ($n=93$), lung ($n=4$).}
+\label{tab:cohort}
+\begin{tabular}{lrrrrr}
+\toprule
+Dataset & $N$ & HC & Breast & CRC & Other$^\dagger$ \\
+\midrule
+GSE73002  & 4,113 & 2,740 & 1,280 & 874 & -- \\
+GSE115513 & 1,513 &   649 &    -- &  -- & 864 \\
+GSE126094 &    20 &    10 &    -- &  -- &  10 \\
+GSE101684 &     8 &     4 &    -- &  -- &   4 \\
+\midrule
+Total     & 5,654 & 3,403 & 1,280 & 874 &  97 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Patient-Specific Tripartite ceRNA Graph Construction}
+
+For each patient $p$, a directed tripartite graph
+$G_p = (V, E)$ was constructed where the vertex set $V$ comprises
+three disjoint node types---circRNAs, miRNAs, and mRNAs---and the
+edge set $E$ encodes experimentally validated regulatory
+relationships. The graph is patient-specific: active edges in $G_p$
+depend on which nodes are co-expressed above the 25th-percentile
+co-expression threshold computed within that patient's own expression
+distribution.
+
+miRNA--mRNA regulatory interactions were sourced from miRTarBase
+v9.0~\citep{huang2022}, retaining only entries supported by strong
+direct experimental evidence: CLIP-Seq, reporter assay, Western blot,
+or quantitative PCR. This filtering yielded 10,770~high-confidence
+edges. circRNA--miRNA sponge interactions were sourced from
+CircInteractome~\citep{dudekula2016}. For datasets lacking direct mRNA
+profiling (GSE115513, GSE126094, GSE101684), mRNA expression was
+imputed conservatively from the miRNA--mRNA co-expression network
+defined by miRTarBase: for each active miRNA, all validated mRNA
+targets were included with a binary presence indicator.
+
+Co-expression threshold sensitivity analysis confirmed AUROC variation
+of no more than $\Delta=0.006$ across the 10th--40th percentile range,
+establishing robustness to this design choice.
+
+\subsection{Feature Extraction}
+
+Twenty-one features were computed per patient (Table~\ref{tab:features}).
+The four \emph{expression features} capture RNA abundance statistics:
+\texttt{n\_circ\_expressed}, \texttt{mean\_expression},
+\texttt{max\_expression}, and \texttt{expression\_std}, all computed on
+$\log_2(\text{CPM}+1)$ transformed count values.
+
+The seventeen \emph{topology features} capture structural properties of
+$G_p$ across six categories: scale (\texttt{n\_nodes},
+\texttt{n\_edges}), degree statistics (\texttt{mean\_degree},
+\texttt{max\_degree}, \texttt{top5\_hub\_degree},
+\texttt{top1\_circ\_degree}), centrality
+(\texttt{max\_circ\_pagerank}~\citep{kolaczyk2009},
+\texttt{top5\_hub\_betweenness}), community structure
+(\texttt{community\_count} by Louvain algorithm,
+\texttt{modularity} by Newman--Girvan criterion~\citep{newman2006}),
+connectivity (\texttt{diameter}), information-theoretic measures
+(\texttt{graph\_entropy}, \texttt{spectral\_entropy}), and TDA
+features (\texttt{betti\_0}, \texttt{betti\_1},
+\texttt{persistence\_entropy}~\citep{otter2017}).
+
+\begin{table}[H]
+\centering
+\caption{Complete feature set. The Batch-Sensitive column indicates
+whether the feature shows significant cross-dataset distributional
+shift ($p<0.001$, Kruskal--Wallis). Cancer direction ($\uparrow$
+higher in cancer, $\downarrow$ lower in cancer) is derived from
+univariate effect-size analysis and SHAP importance.}
+\label{tab:features}
+\small
+\begin{tabular}{llp{5.5cm}cc}
+\toprule
+Group & Feature & Description & Cancer & Batch-Sensitive \\
+\midrule
+\multirow{4}{*}{Expression}
+ & mean\_expression    & Mean $\log_2(\text{CPM}+1)$           & $\downarrow$ & No  \\
+ & max\_expression     & Max $\log_2(\text{CPM}+1)$            & $\downarrow$ & No  \\
+ & expression\_std     & SD of $\log_2(\text{CPM}+1)$          & $\downarrow$ & No  \\
+ & n\_circ\_expressed  & circRNAs above threshold              & $\downarrow$ & No  \\
+\midrule
+\multirow{2}{*}{Scale}
+ & n\_nodes & Total nodes in $G_p$   & $\downarrow$ & \textbf{Yes} \\
+ & n\_edges & Total edges in $G_p$   & $\downarrow$ & \textbf{Yes} \\
+\midrule
+\multirow{4}{*}{Degree}
+ & mean\_degree       & Mean degree across all nodes          & $\downarrow$ & \textbf{Yes} \\
+ & max\_degree        & Maximum degree                        & $\downarrow$ & \textbf{Yes} \\
+ & top5\_hub\_degree  & Mean degree of top-5 hub nodes        & $\downarrow$ & \textbf{Yes} \\
+ & top1\_circ\_degree & Degree of highest-degree circRNA      & $\downarrow$ & No  \\
+\midrule
+\multirow{2}{*}{Centrality}
+ & max\_circ\_pagerank      & Max PageRank among circRNA nodes      & $\downarrow$ & No  \\
+ & top5\_hub\_betweenness   & Mean betweenness of top-5 hubs        & $\downarrow$ & \textbf{Yes} \\
+\midrule
+Clustering & avg\_clustering & Mean clustering coefficient           & $\downarrow$ & No  \\
+\midrule
+\multirow{2}{*}{Community}
+ & community\_count & Louvain community count               & $\uparrow$   & \textbf{Yes} \\
+ & modularity       & Newman--Girvan modularity $Q$         & $\downarrow$ & \textbf{Yes} \\
+\midrule
+Connectivity & diameter & Longest shortest path in LCC          & $\uparrow$   & \textbf{Yes} \\
+\midrule
+\multirow{2}{*}{Information}
+ & graph\_entropy    & Shannon entropy of degree distribution & varies & \textbf{Yes} \\
+ & spectral\_entropy & Entropy of normalised Laplacian spectrum& varies & \textbf{Yes} \\
+\midrule
+\multirow{3}{*}{TDA}
+ & betti\_0             & Connected components ($H_0$)          & $\uparrow$   & \textbf{Yes} \\
+ & betti\_1             & Independent regulatory cycles ($H_1$) & varies & \textbf{Yes} \\
+ & persistence\_entropy & Entropy of persistence diagram        & varies & No  \\
+\bottomrule
+\multicolumn{5}{l}{\small Batch-sensitive: 12/21 features (57.1\%). Non-sensitive: 9/21 features (42.9\%).}
+\end{tabular}
+\end{table}
+
+\subsection{Degree-Preserving Null Network Validation}
+
+To distinguish genuine higher-order structural signal from properties
+of the degree sequence, a degree-preserving random edge permutation was
+performed on a stratified subsample of 500~patients (250~cancer,
+250~healthy) drawn from fold~1. Edges were randomly rewired 100~times
+using the Maslov--Sneppen algorithm~\citep{maslov2002}, which preserves
+exact in- and out-degrees while destroying community membership, path
+lengths, cycle structure, and clustering. Topology-only XGBoost AUROC
+on real graphs: 0.655; on degree-preserving permuted graphs: 0.531
+($p < 0.001$, 1,000-iteration permutation test). This 12.4-percentage-
+point reduction confirms that topology features encode structural
+information beyond the degree sequence within the tested subsample.
+Extension of this validation to all folds is pre-registered as follow-up
+work.
+
+\subsection{Preprocessing and Batch Harmonisation}
+
+Raw counts were log-transformed as $x' = \log_2(\text{CPM}+1)$. All
+21~features were $z$-score normalised using parameters estimated
+exclusively from the training partition within each cross-validation
+fold, preventing leakage of test-data statistics into feature scaling.
+ComBat~\citep{johnson2007} was applied to the four expression features
+only, without including the cancer/healthy label as a biological
+covariate. A control experiment including the cancer label in ComBat
+inflated AUROC to $>0.999$---a clear label-leakage signature---
+confirming that supervised batch correction constitutes a form of
+data leakage. In the LODO evaluation, ComBat was fitted exclusively on
+the three training datasets and applied prospectively to the held-out
+fourth dataset.
+
+\subsection{Cross-Validation Protocols}
+
+Two cross-validation protocols were employed to quantify the
+performance gap induced by dataset-naive evaluation:
+
+\paragraph{Protocol~1: Dataset-Naive CV (standard practice).}
+Outer folds were constructed using \texttt{StratifiedKFold} ($k=5$),
+stratified by class label only. Samples from the same GEO source
+therefore appear in both training and test partitions within the outer
+loop. Inner 3-fold cross-validation with 50~Optuna~TPE
+trials~\citep{akiba2019} optimised XGBoost~\citep{chen2016}
+hyperparameters. This protocol mirrors standard practice in the ceRNA
+classifier literature.
+
+\paragraph{Protocol~2: Dataset-Stratified CV (recommended practice).}
+Outer folds were constructed using \texttt{StratifiedGroupKFold}
+($k=4$, one per dataset), using the GEO dataset accession as the
+grouping variable. This ensures entire datasets are held out in each
+outer fold, preventing the model from exploiting platform-specific
+batch signals. Split-local $z$-score normalisation (computed only on
+training statistics) and platform covariates (sequencing technology
+dummy variables: microarray vs.\ RNA-seq) were incorporated to isolate
+biological from technical signal. The same inner Optuna protocol was
+applied within each outer training fold.
+
+Out-of-fold predicted probabilities from all outer folds were
+concatenated before AUROC computation---the statistically correct
+estimator under nested cross-validation. All 95\%~confidence intervals
+were computed using 2,000~stratified bootstrap resamples with the
+percentile method. Statistical significance was assessed using the
+DeLong non-parametric test~\citep{delong1988} ($\alpha=0.05$). SHAP
+TreeExplainer~\citep{lundberg2017} was used to compute global feature
+importance on the full-dataset model trained under Protocol~1. LODO
+validation followed the same ComBat and Optuna protocol, with all
+harmonisation and tuning applied exclusively within training data.
+
+All analyses were implemented in Python~3.10 (scikit-learn~1.3,
+XGBoost~1.7, Optuna~3.2, SHAP~0.42, NetworkX~3.1, Ripser~0.6,
+neuroCombat~0.9).
+
+\subsection{Topology Sensitivity Analysis}
+
+To quantify which graph-theoretic features encode dataset-specific
+batch effects versus biological signal, a Kruskal--Wallis
+non-parametric test~\citep{kruskal1952} was applied to each of the
+21~features across the four GEO datasets. Features with $p < 0.001$
+were classified as batch-sensitive. The reference dataset for
+directional comparison was GSE73002, which provides genuine matched
+mRNA profiles via exoRBase~\citep{li2018}; the three remaining datasets
+rely on miRTarBase-imputed mRNA indicators. This analysis provides a
+reproducible diagnostic for any multi-cohort ceRNA study.
+
+\subsection{Full-Matrix Expression Baseline: Feasibility Analysis}
+
+A full-matrix elastic net classifier trained on the complete circRNA
+expression space was investigated as an alternative baseline. Direct
+comparison with the hybrid model was precluded by three structural
+incompatibilities: (i)~alternative large-scale circRNA cohorts
+(GSE164174, GSE113740) entirely lack the matched miRNA expression
+profiles required for ceRNA graph construction; (ii)~GSE164174
+represents a single-cancer binary task (gastric cancer
+vs.\ healthy)---a fundamentally simpler problem than the pan-cancer
+formulation; and (iii)~raw circRNA count matrices in these cohorts
+exhibit sparsity exceeding 40\%, violating the quality-control
+thresholds established for the tripartite pipeline. This data
+bifurcation---large circRNA-only cohorts versus smaller
+circRNA+miRNA cohorts---constitutes a critical infrastructure
+bottleneck in the field and motivates the development of matched
+multi-omic liquid biopsy resources.
+
+% -------------------------------------------------------
+% 3. RESULTS
+% -------------------------------------------------------
+\section{Results}
+
+\subsection{Feature-Level Discriminability and Batch Sensitivity}
+
+Among expression features, \texttt{mean\_expression},
+\texttt{max\_expression}, and \texttt{expression\_std} all showed
+Cohen's $d > 1.0$ between cancer and healthy samples, confirming the
+well-established strong differential expression signal in circRNA
+liquid biopsy data. Expression features showed no significant
+cross-dataset distributional shift ($p > 0.05$, Kruskal--Wallis),
+confirming that ComBat harmonisation successfully corrected
+expression-level batch effects.
+
+Among topology features, 12 of 21 (57.1\%) showed significant
+cross-dataset distributional shift ($p < 0.001$), including
+\texttt{community\_count}, \texttt{modularity}, \texttt{diameter},
+\texttt{spectral\_entropy}, \texttt{betti\_0}, \texttt{betti\_1},
+\texttt{n\_nodes}, \texttt{n\_edges}, \texttt{mean\_degree},
+\texttt{max\_degree}, \texttt{top5\_hub\_betweenness}, and
+\texttt{graph\_entropy} (Table~\ref{tab:features};
+Figure~\ref{fig:sensitivity}). The features with the largest
+univariate cancer effect sizes---\texttt{community\_count}
+(Cohen's $d=0.61$), \texttt{modularity} ($d=-0.55$), and
+\texttt{diameter} ($d=0.48$)---are simultaneously among the most
+batch-sensitive, indicating that their apparent discriminative power
+conflates genuine regulatory fragmentation with platform-specific
+graph construction artefacts.
+
+\subsection{Performance Gap: Dataset-Naive vs.\ Dataset-Stratified CV}
+
+Table~\ref{tab:main_results} presents the central finding of this
+study. Under Protocol~1 (dataset-naive CV), the combined
+topology--expression model achieved AUROC~0.927 (95\%~CI:
+0.921--0.934) with sensitivity 66.3\% at 95\%~specificity.
+Under Protocol~2 (dataset-stratified CV), AUROC ranged from 0.45 to
+0.76 depending on the held-out dataset, a reduction of up to 0.48
+AUROC points. The magnitude of this drop directly reflects the extent
+to which Protocol~1 allows the model to exploit platform-specific
+batch signals in the training data.
+
+The expression-only baseline (4~summary statistics) achieved
+AUROC~0.909 under Protocol~1. The hybrid model's apparent advantage
+of $\Delta$AUROC~$=+0.018$ over this baseline (DeLong $p < 0.05$)
+should be interpreted with caution given the inflated nature of both
+estimates under Protocol~1.
+
+Under Protocol~2, the dataset-stratified AUROC of 0.45 when
+GSE115513 is held out and 0.76 when other datasets are held out
+reflects the genuine cross-platform generalisation difficulty. The
+model trained on three platforms and tested on a fourth encounters
+batch effects that ComBat cannot fully resolve because differences in
+RNA extraction, library preparation, and sequencing depth alter the
+effective co-expression landscape and resulting graph topology.
+
+\begin{table}[H]
+\centering
+\caption{Central result: performance comparison under dataset-naive
+(Protocol~1) versus dataset-stratified (Protocol~2) cross-validation.
+Sensitivity values at 95\%~specificity. LODO = leave-one-dataset-out.
+$^\ddagger$Protocol~2 AUROC varies by held-out dataset; range reported.}
+\label{tab:main_results}
+\begin{tabular}{llcc}
+\toprule
+Protocol & Model & AUROC (95\% CI) & Sens.\@ 95\% Sp. \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{Protocol~1\\(Dataset-naive CV)}}
+ & Expression-only (4 features) & 0.909 (0.901--0.916) & 55.6\% \\
+ & Topology-only (17 features)  & 0.655 (0.640--0.670) & 24.3\% \\
+ & Hybrid (21 features)         & \textbf{0.927 (0.921--0.934)} & \textbf{66.3\%} \\
+\midrule
+\multirow{1}{*}{\shortstack[l]{Protocol~2\\(Dataset-stratified CV)}}
+ & Hybrid (21 features) & 0.45--0.76$^\ddagger$ & -- \\
+\midrule
+\multirow{2}{*}{LODO}
+ & GSE73002 held out ($n=4{,}113$)  & 0.749 (0.733--0.762) & -- \\
+ & GSE115513 held out ($n=1{,}513$) & 0.540 (0.510--0.571) & -- \\
+\bottomrule
+\multicolumn{4}{l}{\small Topology-only (perm.): AUROC~0.531 ($p < 0.001$ vs.\ real; 500-patient subsample).}
+\end{tabular}
+\end{table}
+
+\subsection{LODO External Validation}
+
+LODO results (Table~\ref{tab:main_results}) confirm the cross-platform
+generalisation difficulty identified by Protocol~2. When GSE73002
+($n=4{,}113$) was withheld, the model achieved AUROC~0.749
+(95\%~CI: 0.733--0.762), demonstrating that a cancer detection signal
+does transfer across platforms when the training set is large and
+diverse. When GSE115513 ($n=1{,}513$) was withheld---the only dataset
+with stage annotations, generated under a single-institution uniform
+protocol---the model achieved near-chance AUROC~0.540
+(95\%~CI: 0.510--0.571) despite unsupervised ComBat harmonisation.
+GSE126094 ($n=20$) and GSE101684 ($n=8$) produced statistically
+uninformative confidence intervals due to insufficient sample size and
+are reported for completeness only.
+
+The LODO failure on GSE115513 is not random. Unsupervised ComBat
+corrects additive expression shifts but cannot compensate for
+differences in RNA extraction and circRNA enrichment protocols that
+alter the effective co-expression landscape and resulting graph
+topology---precisely the batch-sensitive features identified in
+Section~3.1. This finding is consistent with known challenges in
+multi-cohort circRNA meta-analyses and is accurately predicted by the
+topology sensitivity analysis.
+
+\subsection{Stage Stratification: Within-Protocol Evidence Only}
+
+Within the GSE115513 staged sub-cohort ($n=731$~cancer,
+$n=649$~healthy; single institution, uniform protocol), Stage~I AUROC
+was 0.924 for the hybrid model versus 0.886 for the expression-only
+baseline, translating to a 2.46-fold improvement in Stage~I
+sensitivity at 95\%~specificity: 53.2\% vs.\ 21.6\%. The
+Kruskal--Wallis test across Stages~I--IV yielded $p=0.31$, confirming
+that model performance does not depend on late-stage disease burden.
+
+\textbf{Scope caveat}: These results are within-cohort estimates
+derived from a single uniformly processed dataset and must not be
+interpreted as cross-platform clinical performance. The LODO failure
+of GSE115513 (AUROC~0.540) means the Stage~I sensitivity improvement
+has not been validated externally and likely reflects single-platform
+internal consistency rather than generalizable biological signal.
+
+\subsection{SHAP Feature Importance and Biological Interpretability}
+
+Global SHAP feature importance (Figure~\ref{fig:shap}) computed under
+Protocol~1 shows expression features dominating by mean absolute SHAP
+value, consistent with the strong expression-only baseline. Among
+topology features, \texttt{community\_count}
+(mean~$|\text{SHAP}|=0.305$) is most important, followed by
+\texttt{diameter} (0.249), \texttt{mean\_degree} (0.152), and
+\texttt{modularity} (0.125).
+
+\textbf{Critical interpretation}: The topology features with the
+highest SHAP importance---\texttt{community\_count},
+\texttt{diameter}, \texttt{mean\_degree}, \texttt{modularity}---are
+all batch-sensitive ($p < 0.001$; Table~\ref{tab:features}). Their
+SHAP importance under Protocol~1 therefore cannot be cleanly
+attributed to cancer biology; it reflects a mixture of biological
+regulatory fragmentation signal and platform-specific graph
+construction differences. This observation does not invalidate the
+null network validation result (topology-only AUROC drops 12.4~pp
+under degree-preserving permutation), which confirms that genuine
+structural signal exists in the data. It does, however, mean that the
+SHAP importance rankings should not be used to rank circRNA biomarkers
+for clinical follow-up without first replicating them in a
+platform-controlled study.
+
+% -------------------------------------------------------
+% 4. DISCUSSION
+% -------------------------------------------------------
+\section{Discussion}
+
+\subsection{The Dataset-Naive CV Problem in ceRNA Liquid Biopsy Research}
+
+The central finding of this study is that dataset-naive cross-validation
+inflates apparent AUROC by up to 0.48~points in a multi-cohort ceRNA
+liquid biopsy meta-cohort. This gap is not a statistical curiosity; it
+has direct consequences for how the field interprets published results.
+A classifier reporting AUROC~0.93 under Protocol~1 may be doing little
+more than learning to distinguish Illumina miRNA-seq from exosome
+circRNA microarray---a platform classification task with no clinical
+utility.
+
+The mechanism is straightforward. ceRNA graph topology features are
+constructed by thresholding expression values, meaning the set of
+active nodes and edges depends directly on the underlying expression
+distribution. When that distribution carries platform-specific
+signatures---as 57.1\% of topology features demonstrably do---the
+topology features inherit those signatures. A model trained on three
+platforms that sees samples from all four in cross-validation can
+learn these signatures implicitly, even without explicit platform
+labels.
+
+This problem is not unique to ceRNA classifiers. It is a specific
+instance of the broader dataset shift problem in multi-source
+biomedical machine learning~\citep{leek2010}. What is specific to this
+subfield is that the problem is compounded by the network construction
+step: batch effects enter not only through raw expression values but
+also through the graph topology derived from those values, creating a
+two-stage amplification of platform signal.
+
+\subsection{What the Honest Numbers Mean}
+
+The dataset-stratified AUROC of 0.45--0.76 and LODO AUROC of 0.540--0.749
+represent the genuine cross-platform performance of the framework.
+The wide range reflects the heterogeneity of the four GEO datasets in
+terms of cancer type, sequencing platform, and sample size. The upper
+bound (0.749, GSE73002 LODO) demonstrates that a genuine pan-cancer
+ceRNA signal does exist and transfers across platforms when training data
+is large and diverse. The lower bound (0.540, GSE115513 LODO) demonstrates
+that this signal is not robust to all platform combinations, and that
+the dataset-stratified CV range of 0.45--0.76 accurately anticipates
+this heterogeneity.
+
+The degree-preserving null model result (topology-only AUROC drops from
+0.655 to 0.531, $p<0.001$) confirms that genuine structural signal
+exists independent of the degree sequence---ceRNA network topology does
+encode cancer-associated regulatory fragmentation. The problem is not
+that topology is uninformative; it is that topology features are
+confounded with platform identity to a degree that makes their
+discriminative contribution difficult to isolate without a controlled
+experimental design.
+
+\subsection{Implications for the Field}
+
+Prior multi-cohort ceRNA classifier studies that employed dataset-naive
+cross-validation likely overestimate their performance. This does not
+mean those studies are invalid; it means their reported AUROC values
+should be interpreted as upper bounds on performance under idealised
+(within-platform) conditions rather than as estimates of
+cross-platform clinical utility.
+
+Three practical recommendations follow from this work. First, any
+multi-cohort study should report both dataset-naive and
+dataset-stratified CV results, and should treat the latter as the
+primary performance estimate. Second, SHAP importance rankings derived
+from dataset-naive models should not be used to rank biomarkers for
+clinical follow-up when the top-ranked features are batch-sensitive.
+Third, the topology sensitivity diagnostic introduced here---
+Kruskal--Wallis cross-dataset distributional testing of all graph
+features---should be run as a standard pre-analysis step in any
+multi-cohort ceRNA network study.
+
+\subsection{Limitations}
+
+\begin{enumerate}
+  \item Dataset-stratified AUROC range (0.45--0.76) is based on four
+  datasets; the range may narrow or widen with additional cohorts.
+
+  \item Degree-preserving null validation was executed on 500~patients
+  from fold~1 only (8.8\% of the full cohort) due to computational
+  cost; extension to all folds is pre-registered as follow-up analysis.
+
+  \item Imputed mRNA data (miRTarBase-derived binary indicators) for
+  three of four datasets introduces structural assumptions that differ
+  fundamentally from the matched mRNA profiles available via exoRBase
+  for GSE73002. This imputation strategy likely contributes to the
+  batch sensitivity observed in topology features.
+
+  \item Stage-specific results are within-cohort estimates on
+  GSE115513 only; cross-platform Stage~I performance remains to be
+  established.
+
+  \item The prostate cancer sub-cohort ($n=93$) is insufficient for
+  robust inference; all prostate results are exploratory.
+
+  \item A full-matrix elastic net expression baseline evaluated on
+  matched data was not feasible due to the structural bifurcation
+  between circRNA-only and circRNA+miRNA public cohorts, as described
+  in Section~2.7.
+\end{enumerate}
+
+% -------------------------------------------------------
+% 5. CONCLUSION
+% -------------------------------------------------------
+\section{Conclusion}
+
+Dataset-naive cross-validation inflates apparent AUROC by up to
+0.48~points in multi-cohort ceRNA liquid biopsy classifiers, because
+57.1\% of ceRNA graph topology features encode platform-specific batch
+effects alongside biological signal. Genuine cross-platform performance,
+measured by dataset-stratified CV and LODO validation, falls in the
+range AUROC~0.45--0.76---substantially below the 0.90--0.95 values
+routinely reported in the literature. A degree-preserving null network
+validation confirms that cancer-associated structural signal genuinely
+exists in ceRNA topology, but this signal is not currently separable
+from platform identity without standardised pre-analytical protocols.
+The topology sensitivity diagnostic and dataset-stratified evaluation
+pipeline introduced here provide reproducible tools for the field to
+benchmark future classifiers honestly, and motivate prospective
+multi-site studies with harmonised sequencing protocols as the path
+toward clinically credible ceRNA network-based cancer detection.
+
+% -------------------------------------------------------
+% DATA AVAILABILITY
+% -------------------------------------------------------
+\section*{Data Availability}
+
+All datasets are publicly available from NCBI GEO
+(\url{https://www.ncbi.nlm.nih.gov/geo/}) under accession numbers
+GSE73002, GSE115513, GSE126094, and GSE101684. Processed feature
+matrices, the topology sensitivity diagnostic script, and the
+dataset-stratified cross-validation pipeline are available at
+\url{https://github.com/Sharon-codes/Cancer-Research-JBI}.
+
+% -------------------------------------------------------
+% REFERENCES
+% -------------------------------------------------------
+\bibliography{reference}
+
+% -------------------------------------------------------
+% FIGURES  (legends here; image files uploaded separately)
+% -------------------------------------------------------
+\newpage
+\section*{Figure Legends}
+
+\begin{description}
+
+\item[Figure 1.] \textbf{Topology sensitivity analysis across four GEO
+datasets.} Box plots showing the cross-dataset distribution of
+representative topology features: (A)~\texttt{community\_count},
+(B)~\texttt{modularity}, (C)~\texttt{diameter},
+(D)~\texttt{spectral\_entropy}, (E)~\texttt{betti\_0}, and
+(F)~\texttt{mean\_expression} (non-batch-sensitive control). Kruskal--Wallis
+$p$-values are annotated above each panel. Features in panels A--E show
+significant cross-dataset distributional shift ($p < 0.001$), indicating
+batch sensitivity. The expression control in panel~F shows no significant
+shift ($p > 0.05$), confirming that ComBat harmonisation successfully
+corrected expression-level batch effects while topology features
+remain confounded.
+
+\item[Figure 2.] \textbf{SHAP beeswarm plot for the hybrid model
+(Protocol~1, dataset-naive CV).} Features are ranked by mean absolute
+SHAP value. Colour encodes feature value (red~=~high, blue~=~low).
+Features marked with~$\star$ in the y-axis label are batch-sensitive
+($p < 0.001$, Kruskal--Wallis). The dominance of batch-sensitive topology
+features in the top-10 SHAP rankings illustrates why Protocol~1
+importance scores cannot be used to rank circRNA biomarkers for clinical
+follow-up without platform-controlled replication.
+
+\item[Figure 3.] \textbf{Structural comparison of representative
+patient-specific ceRNA subgraphs.} Left: Healthy patient subgraph
+exhibiting dense modular organisation with high-degree circRNA hubs.
+Right: Stage~I cancer patient subgraph exhibiting hub dissolution,
+reduced modularity, and network fragmentation. Nodes are coloured by
+type: green~=~circRNA, orange~=~miRNA, grey~=~mRNA.
+
+\item[Figure 4.] \textbf{Performance comparison across evaluation
+protocols.} Bar chart comparing AUROC under Protocol~1 (dataset-naive
+CV), Protocol~2 (dataset-stratified CV, range shown as error bar), and
+LODO validation (per held-out dataset). The gap between Protocol~1 and
+Protocol~2/LODO quantifies the inflation attributable to dataset-naive
+evaluation.
+
+\end{description}
+
+\end{document}

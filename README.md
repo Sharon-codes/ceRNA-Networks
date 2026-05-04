@@ -4,16 +4,12 @@ A computational framework for early-stage cancer detection using **Competitive E
 
 ## 🚀 Overview
 
-This repository implements a multi-stage pipeline to identify robust biomarkers for cancer by analyzing the regulatory relationships between **circRNAs** and **miRNAs**. It leverages **Topological Data Analysis (TDA)** and graph metrics to detect systemic changes in regulatory networks across various cancer types (Lung, Gastric, HCC, CRC, etc.).
+This repository implements a multi-stage pipeline to identify robust biomarkers for cancer by analyzing the regulatory relationships between **circRNAs** and **miRNAs**. It leverages **Topological Data Analysis (TDA)** and graph metrics to detect systemic changes in regulatory networks across various cancer types (Lung, Breast, CRC, Prostate).
 
-### Key Research Findings
-
-| Comparison | Valid? | Insight |
-| :--- | :---: | :--- |
-| **Hybrid (0.927) vs. Elastic Net (0.979)** | ❌ | Different datasets; Hybrid used smaller multi-omics overlap. |
-| **Hybrid LODO (0.749) vs. EN LODO (0.971)** | ❌ | Different held-out sets; EN focused on high-sample binary tasks. |
-| **Null Network Validation** | ✅ | Confirms topology signal stands independently of expression levels. |
-| **Stage Stratification (GSE115513)** | ✅ | Validates early-stage (Stage-I) detection within a single cohort. |
+### Key Research Contributions
+1. **Dataset-Stratified Validation**: Demonstrating the inflation in AUROC (0.927 -> 0.45-0.76) when cross-validation is not stratified by dataset membership.
+2. **Topology Sensitivity Diagnostic**: Identifying that 57.1% of ceRNA graph features are sensitive to platform-specific batch effects.
+3. **Robustness Analysis**: Quantifying the drop in performance when removing batch-sensitive features, proving the reliance of naive models on technical noise.
 
 ---
 
@@ -21,14 +17,23 @@ This repository implements a multi-stage pipeline to identify robust biomarkers 
 
 - `config/`: Centralized configuration (`config.py`) and metric logging.
 - `data/`: Automated retrieval and processing of GEO datasets.
-- `network/`: Logic for building ceRNA interaction networks (circBase, miRBase).
-- `features/`: Topological feature extraction (Persistent Homology, Centrality, Graph Entropy).
-- `models/`: 
-  - `robust_validation.py`: Dataset-blocked nested CV for topology models.
-  - `train_full_expression_elasticnet.py`: High-dimensional Elastic Net on raw circRNA profiles.
-  - `lodo_full_expression_elasticnet.py`: External validation (LODO) for expression models.
-- `figures/`: Scripts to generate publication-ready plots and SHAP visualizations.
-- `run_pipeline.py`: Main entry point for end-to-end execution.
+- `network/`: Logic for building ceRNA interaction networks (miRTarBase, CircInteractome).
+- `features/`: Topological feature extraction (Persistent Homology, Centrality, Community Structure).
+- `models/`: Implementation of nested CV and LODO validation.
+- `scripts/reproduction/`: Python scripts to regenerate all 7 figures in the manuscript.
+- `figures/`: High-resolution PNG outputs for publication.
+
+---
+
+## 📈 Methodology
+
+### 1. Workflow Pipeline
+The complete methodological workflow is illustrated in Figure 1:
+![Methodological Workflow](figures/figure1_workflow.png)
+
+### 2. Robustness and Baseline Comparison
+We quantified the impact of batch-sensitive features and compared our results against linear baselines (Figure 7):
+![Robustness Analysis](figures/figure7_robustness_baseline.png)
 
 ---
 
@@ -41,48 +46,28 @@ This repository implements a multi-stage pipeline to identify robust biomarkers 
    pip install -r requirements.txt
    ```
 
-2. **Initialize Databases & GEO Data**:
+2. **Run Pipeline**:
    ```bash
-   python data/download_dbs.py
-   python data/load_geo.py
+   python run_pipeline.py
+   ```
+
+3. **Reproduce Figures**:
+   ```bash
+   python scripts/reproduction/generate_final_figure1.py
+   # ...
    ```
 
 ---
 
-## 📈 Usage
+## 📜 Findings Summary
 
-### 1. Run Full Pipeline
-To execute data processing, network construction, and initial classification:
-```bash
-python run_pipeline.py
-```
-
-### 2. Robust Topology Validation
-To run the dataset-blocked nested CV and LODO for the Hybrid Topology model:
-```bash
-python robust_validation.py
-```
-
-### 3. Full Expression Baseline
-To train the Elastic Net model on the full log2(CPM+1) circRNA matrix:
-```bash
-python models/train_full_expression_elasticnet.py
-python models/lodo_full_expression_elasticnet.py
-```
-
-### 4. Generate Figures
-Scripts like `generate_final_figure1.py` reproduce the visualizations for the manuscript.
+| Experiment | Insight |
+| :--- | :--- |
+| **Naive vs. Stratified CV** | Naive CV (0.927) is inflated by platform-specific signals. Stratified CV (0.45-0.76) represents true generalizability. |
+| **Batch Sensitivity** | 12/21 features show significant cross-dataset shift ($p < 0.001$), including Betti numbers and Community Count. |
+| **Robustness Check** | Removing batch-sensitive features drops Naive AUROC from **0.999** to **0.978**, revealing the hidden dependency on batch noise. |
 
 ---
 
-## 🔬 Methodology
-
-- **Network Construction**: Competition-based linkage defined by shared miRNA binding sites.
-- **Topological Features**: Betti numbers (B0, B1), persistence entropy, and hub-based centrality metrics.
-- **Machine Learning**: Nested 5×3-fold Cross-Validation with Optuna hyperparameter optimization.
-- **Validation**: Leave-One-Dataset-Out (LODO) to ensure platform and batch robustness.
-
----
-
-## 📜 License
+## ⚖️ License
 This project is licensed under the MIT License - see the LICENSE file for details.

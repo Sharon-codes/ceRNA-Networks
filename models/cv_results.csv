@@ -1,0 +1,5 @@
+fold,held_out,auc,sens_95spec,best_params
+1,GSE115513,0.5091,0.0185,"{""n_estimators"": 203, ""max_depth"": 5, ""learning_rate"": 0.011128853174905732, ""scale_pos_weight"": 1.985580389329488, ""eval_metric"": ""logloss"", ""random_state"": 42}"
+2,GSE101684,0.8125,0.75,"{""n_estimators"": 175, ""max_depth"": 6, ""learning_rate"": 0.05395030966670229, ""scale_pos_weight"": 1.5126835781041388, ""eval_metric"": ""logloss"", ""random_state"": 42}"
+3,GSE73002,0.5018,0.0342,"{""n_estimators"": 186, ""max_depth"": 4, ""learning_rate"": 0.04091220574443785, ""scale_pos_weight"": 0.755125284738041, ""eval_metric"": ""logloss"", ""random_state"": 42}"
+4,GSE126094,1.0,1.0,"{""n_estimators"": 267, ""max_depth"": 3, ""learning_rate"": 0.015199348301309814, ""scale_pos_weight"": 1.5140562248995983, ""eval_metric"": ""logloss"", ""random_state"": 42}"

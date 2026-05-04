@@ -1,39 +1,34 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-.pytest_cache/
-.coverage
-htmlcov/
 
-# Data
-data/raw/
-data/processed/
-!data/raw/databases/README.md
+# Data and Models (Large Files)
+data/
+models/*.pkl
+models/*.npy
+network/*.pkl
+network/*.npy
+results/
 
-# Logs and Metrics
+# Analysis and Logs
 logs/
-metrics/
-cv_results.csv
+analysis_output/
+archive/
+scratch/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
 
 # Environment
-.env
-venv/
-ENV/
 .venv/
+env/
+venv/
+.env
 
-# IDE
-.vscode/
-.idea/
-
-# Research Artifacts
-figures/*.png
-figures/*.pdf
-temp/
-scratch/
-network/graphs.pkl
-
-# Exclude Manuscript (User request)
-Manuscript/
-
-# Local Archive
-archive/
+# Figures (keep the final ones, ignore temporary/scratch figures)
+figures/*.eps
+!figures/*.png
+!figures/final/
