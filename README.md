@@ -1,4 +1,4 @@
-# Integrating ceRNA Network Topology with Expression Features for Pan-Cancer Detection
+# Auditing Topological Batch Leakage in Multi-Cohort Graph Machine Learning: A Methodological Framework for ceRNA Networks
 
 This repository contains the official implementation and reproduction suite for the research paper focusing on robust ceRNA network-based cancer detection.
 
