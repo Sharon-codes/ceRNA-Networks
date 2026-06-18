@@ -31,3 +31,4 @@ venv/
 # Figures (ignore generated images, keep scripts)
 figures/*
 !figures/*.py
+!figures/*.png
