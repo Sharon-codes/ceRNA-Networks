@@ -28,7 +28,6 @@ env/
 venv/
 .env
 
-# Figures (keep the final ones, ignore temporary/scratch figures)
-figures/*.eps
-!figures/*.png
-!figures/final/
+# Figures (ignore generated images, keep scripts)
+figures/*
+!figures/*.py
