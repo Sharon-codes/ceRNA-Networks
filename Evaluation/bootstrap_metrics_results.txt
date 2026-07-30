@@ -1,0 +1,4 @@
+ESM-MambaTCR Empirical Bootstrapping & 95% Confidence Intervals
+===============================================================
+ROC-AUC: 0.681 [95% CI: 0.666 - 0.696]
+PR-AUC:  0.655 [95% CI: 0.635 - 0.674]

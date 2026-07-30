@@ -1,0 +1,12 @@
+Additional Statistics & Baselines (Concerns 2 & 5)
+==================================================
+Precision@top-100 on LODO Test Set: 0.94000
+Precision@top-100 95% CI Bounds:    [0.89000, 0.98000]
+
+McNemar's Test comparing Baseline (tau=0.076) vs. EPIC-TRACE (tau=0.180):
+  Contingency Table:
+    Both Correct:      1933
+    Baseline only:     1209
+    EPIC-TRACE only:   771
+    Both Incorrect:    907
+  McNemar p-value:     6.14309e-23

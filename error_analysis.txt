@@ -1,0 +1,56 @@
+======================================================================
+ESM-MAMBATCR DETAILED ERROR ANALYSIS & STATISTICAL SIGNIFICANCE REPORT
+======================================================================
+
+----------------------------------------------------------------------
+SECTION 1: STATISTICAL SIGNIFICANCE (PAIRED BOOTSTRAP TEST)
+----------------------------------------------------------------------
+Direct Concatenation Model Test ROC-AUC: 0.6951
+NetTCR-Style CNN Proxy Model Test ROC-AUC: 0.5689
+
+Paired Bootstrap Significance Test (1,000 resamples):
+- Mean AUC Difference (MambaTCR - NetTCR): 0.1266
+- 95% Confidence Interval on Difference:   [0.1083, 0.1466]
+- Empirical p-value (NetTCR >= MambaTCR):  0.000000
+
+Interpretation:
+The Direct Concatenation model is statistically superior to the NetTCR proxy model (p-value < 0.05).
+
+----------------------------------------------------------------------
+SECTION 2: ERROR ANALYSIS & MISCLASSIFICATION MODALITIES
+----------------------------------------------------------------------
+Evaluation Threshold: 0.076
+Total Test Samples Evaluated: 4820
+Correctly Classified: 3140 (Accuracy: 65.15%)
+Misclassified:        1680 (Error Rate: 34.85%)
+
+A. HLA Allele Misclassification Modalities (Filtered for minimum 5 positive/negative samples):
+- Top 3 HLA Alleles with the highest False Negative Rate:
+1. A*24:02: 100.0000% (5 FNs out of 5 positives)
+2. B*07:02: 86.6667% (26 FNs out of 30 positives)
+3. DRB*01:01: 76.9231% (10 FNs out of 13 positives)
+
+- Top 3 HLA Alleles with the highest False Positive Rate:
+1. A*24:02: 77.5000% (31 FPs out of 40 negatives)
+2. A*01:01: 68.7500% (55 FPs out of 80 negatives)
+3. B*42:01: 68.4211% (39 FPs out of 57 negatives)
+
+B. Peptide Length Modalities:
+- Average Peptide Length of Correctly Classified: 10.1796 residues
+- Average Peptide Length of Misclassified:        9.6470 residues
+- Interpretation:
+Misclassifications tend to occur on shorter peptides.
+
+C. CDR3 Sequence Length Modalities (True Positives vs. False Negatives):
+- Average CDR3 Beta Length:
+  * True Positives (TP):    14.3960 residues (n=1755)
+  * False Negatives (FN):   13.9511 residues (n=655)
+- Average CDR3 Alpha Length (excluding empty alpha chains):
+  * True Positives (TP):    13.6438 residues (n=73)
+  * False Negatives (FN):   13.6176 residues (n=68)
+- Interpretation:
+False Negatives (missed binders) have shorter CDR3 sequences than True Positives.
+
+======================================================================
+REPORT GENERATED ON: 2026-06-18
+======================================================================

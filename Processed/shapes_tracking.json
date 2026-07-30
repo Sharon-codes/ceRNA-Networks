@@ -1,0 +1,50 @@
+{
+    "VDJdb_Structured": [
+        1000,
+        5
+    ],
+    "McPAS-TCR_Structured": [
+        33713,
+        5
+    ],
+    "CEDAR_Structured": [
+        8108,
+        5
+    ],
+    "Donor1_Structured": [
+        13960,
+        5
+    ],
+    "T-PLL_Structured": [
+        560,
+        5
+    ],
+    "Combined": [
+        57341,
+        5
+    ],
+    "QC_Canonical_AA": [
+        35528,
+        5
+    ],
+    "QC_Anchored": [
+        33416,
+        5
+    ],
+    "Post_DeDuplication": [
+        18538,
+        5
+    ],
+    "Final_Train": [
+        14548,
+        5
+    ],
+    "Final_Val": [
+        1580,
+        5
+    ],
+    "Final_Test": [
+        2410,
+        5
+    ]
+}

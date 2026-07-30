@@ -1,0 +1,29 @@
+=== BMC Bioinformatics Revision: Consolidated Rerun Metrics Report ===
+
+This report consolidates the quantitative results from the second round of revisions addressing Concern 1 (External Validation Cohort), Concern 2 & 5 (Additional Statistics), and "Stronger Ablations" (Architectural Ablations).
+
+1. The External Validation Cohort (Addresses Concern 1)
+---------------------------------------------------------
+Evaluated the frozen, pre-trained 8M Direct Concatenation model on the NetTCR-2.0 MIRA test set (10x Genomics):
+- Test ROC-AUC:         0.50368
+- Test PR-AUC:          0.18450
+- Precision@top-100:    0.24000
+Note: The MIRA dataset represents a completely out-of-distribution independent cohort, which illustrates the generalization limit of zero-shot TCR transfer.
+
+2. Additional Statistics (Addresses Concerns 2 & 5)
+----------------------------------------------------
+- Precision@top-100 (LODO Test Set Point Estimate): 0.94000
+- 95% Confidence Interval for Precision@top-100:    [0.89000, 0.98000] (via 1,000 bootstrap resamples)
+- McNemar's Test: Comparing Baseline (tau=0.076) vs. EPIC-TRACE (tau=0.180 Youden-optimal threshold)
+  Contingency Table:
+                       EPIC Correct   EPIC Incorrect
+    Baseline Correct        1933           1209
+    Baseline Incorrect      771            907
+  McNemar p-value: **6.1431e-23** (highly statistically significant difference in classifications)
+
+3. Architectural Ablations (Addresses "Stronger Ablations")
+-----------------------------------------------------------
+Trained and evaluated pooling and projection modifications of the 8M model on the LODO split (5 epochs):
+- Modification A (Replace Mean-Pooling with Max-Pooling over token dimensions): 0.79490 (Test ROC-AUC)
+- Modification B (Extract only [CLS] token representation without pooling):     0.47696 (Test ROC-AUC)
+- Modification C (Increase latent projection d_model from 64 to 128):          0.79664 (Test ROC-AUC)

@@ -1,0 +1,42 @@
+==================================================
+MODULE 1: DATASET STATISTICS EXTRACTION
+==================================================
+Total Unique TCR Sequences:  16240
+Total Unique Peptide Sequences: 746
+Total Unique HLA Alleles:       99
+Total Positive Pairs:           18538
+Total Negative Pairs (Decoy):   18538
+Class Imbalance Ratio (Pos:Neg): 1.00 : 1.00 (Balanced via Decoy Sampling)
+
+==================================================
+MODULE 2: CLASSICAL ML & BASELINE BENCHMARKING
+==================================================
+| Model | Test ROC-AUC | Test MCC (threshold 0.5) |
+| :--- | :---: | :---: |
+| Logistic Regression | 0.8331 | 0.1171 |
+| Random Forest | 0.6418 | 0.0416 |
+| XGBoost | 0.6838 | 0.0342 |
+| Simple MLP | 0.2256 | -0.1902 |
+| ESM + Cross-Attention (Oversmoothed) | 0.5000 | 0.0000 |
+
+==================================================
+MODULE 3: DATA LEAKAGE ABLATION
+==================================================
+Standard Random Split ROC-AUC (Peptide Leaking): 0.7635
+True LODO Homology Split ROC-AUC (Leakage-free): 0.6810
+Difference (Leakage Bias):                      0.0825
+
+==================================================
+MODULE 4: 5-SEED STATISTICAL ROBUSTNESS
+==================================================
+Test ROC-AUC across 5 seeds: 0.6892 ± 0.0043
+Test PR-AUC across 5 seeds:  0.6659 ± 0.0061
+
+==================================================
+MODULE 5: RUNTIME AND PARAMETER AUDIT
+==================================================
+| Model Architecture | Trainable Parameters | Avg Epoch Training Time (s) |
+| :--- | :---: | :---: |
+| ESM + Cross-Attention (Baseline) | 566,273 | 21.17 s |
+| Direct Concatenation (Ours) | 950,657 | 13.18 s |
+

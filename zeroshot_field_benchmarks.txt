@@ -1,0 +1,15 @@
+
+=== Zero-Shot Field Benchmark Comparators ===
+Direct Concatenation (Baseline):
+  Test ROC-AUC: 0.87527
+  Youden-optimized MCC: 0.61451
+
+ERGO-II (LSTM + Transformer autoencoder prior):
+  Test ROC-AUC: 0.50000
+  Youden-optimized MCC: 0.00000
+  DeLong p-value relative to Baseline: 0.00000e+00
+
+EPIC-TRACE:
+  Test ROC-AUC: 0.75469
+  Youden-optimized MCC: 0.45029
+  DeLong p-value relative to Baseline: 2.94401e-65

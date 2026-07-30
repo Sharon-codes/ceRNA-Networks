@@ -1,0 +1,5 @@
+Architectural Ablations Report (Stronger Ablations)
+==================================================
+Modification A (Max-Pooling, d_model=64):              0.79490
+Modification B ([CLS]-Token Extraction, d_model=64):   0.47696
+Modification C (Direct Concatenation, d_model=128):     0.79664
