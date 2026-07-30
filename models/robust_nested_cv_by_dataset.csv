@@ -1,0 +1,4 @@
+fold,dataset,platform,n,n_cancer,n_healthy,auc
+1,GSE115513,exosome_rnaseq,1513,864,649,0.584
+3,GSE73002,whole_blood_microarray,4113,1373,2740,0.8408
+4,GSE126094,plasma_rnaseq,20,10,10,0.485

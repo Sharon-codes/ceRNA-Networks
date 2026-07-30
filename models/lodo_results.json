@@ -1,0 +1,46 @@
+[
+  {
+    "held_out_dataset": "GSE101684",
+    "n_test": 8,
+    "n_cancer_test": 4,
+    "n_healthy_test": 4,
+    "auc": 0.1875,
+    "auc_ci_lo": 0.0,
+    "auc_ci_hi": 0.6667,
+    "average_precision": 0.4125,
+    "sensitivity_95spec": 0.0
+  },
+  {
+    "held_out_dataset": "GSE126094",
+    "n_test": 20,
+    "n_cancer_test": 10,
+    "n_healthy_test": 10,
+    "auc": 0.85,
+    "auc_ci_lo": 0.64,
+    "auc_ci_hi": 1.0,
+    "average_precision": 0.8488,
+    "sensitivity_95spec": 0.3
+  },
+  {
+    "held_out_dataset": "GSE115513",
+    "n_test": 1513,
+    "n_cancer_test": 864,
+    "n_healthy_test": 649,
+    "auc": 0.4892,
+    "auc_ci_lo": 0.4594,
+    "auc_ci_hi": 0.5165,
+    "average_precision": 0.5645,
+    "sensitivity_95spec": 0.0475
+  },
+  {
+    "held_out_dataset": "GSE73002",
+    "n_test": 4113,
+    "n_cancer_test": 1373,
+    "n_healthy_test": 2740,
+    "auc": 0.5028,
+    "auc_ci_lo": 0.4835,
+    "auc_ci_hi": 0.5208,
+    "average_precision": 0.3206,
+    "sensitivity_95spec": 0.0117
+  }
+]

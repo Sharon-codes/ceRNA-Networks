@@ -1,0 +1,5 @@
+model,n_features,auc,ci_lo,ci_hi,sens_95spec,ap
+Expression only,4,0.9089,0.9013,0.9164,0.5562,0.8601
+Topology only,12,0.6553,0.6405,0.6704,0.2426,0.6101
+Expression + Topology (combined),21,0.9262,0.9195,0.933,0.657,0.8876
+Topology + Expression,16,0.9267,0.9199,0.9334,0.6597,0.888
