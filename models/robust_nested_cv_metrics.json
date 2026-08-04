@@ -1,0 +1,16 @@
+{
+  "method": "Nested CV with StratifiedGroupKFold by dataset, split-local harmonisation, and train-dataset platform covariates",
+  "outer_folds": 4,
+  "inner_folds": 3,
+  "optuna_trials_per_fold": 10,
+  "n_samples": 5654,
+  "n_cancer": 2251,
+  "n_healthy": 3403,
+  "aggregate_auc": 0.7602,
+  "aggregate_auc_95ci_lo": 0.7462,
+  "aggregate_auc_95ci_hi": 0.7731,
+  "aggregate_ap": 0.6738,
+  "aggregate_sens_at_95spec": 0.2421,
+  "fold_mean_auc": 0.579,
+  "fold_std_auc": 0.1891
+}

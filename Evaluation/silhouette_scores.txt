@@ -1,0 +1,16 @@
+HLA Supertype Silhouette Score Analysis
+=======================================
+Number of mapped alleles: 51
+Raw ESM-2 (320-dim) Silhouette Score:   0.13933
+Projected Latent (64-dim) Silhouette Score:   0.00358
+
+Supertypes distribution:
+  A01: 3
+  A02: 19
+  A03: 3
+  A24: 1
+  B07: 10
+  B08: 1
+  B27: 5
+  B44: 6
+  B58: 3

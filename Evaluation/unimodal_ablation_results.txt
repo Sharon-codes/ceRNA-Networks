@@ -1,0 +1,5 @@
+ESM-MambaTCR Unimodal Bias Ablation Results
+============================================
+Baseline Test ROC-AUC:      0.6810
+TCR-Only (Masked Peptide):  0.5000
+Peptide-Only (Masked TCR):  0.5613

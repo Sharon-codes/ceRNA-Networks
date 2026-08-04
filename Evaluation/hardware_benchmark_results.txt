@@ -1,0 +1,6 @@
+=== HARDWARE INFERENCE BENCHMARK RESULTS ===
+Device Used:              CPU (CPU)
+Total Pairs Evaluated:    100,000
+Batch Size:               512
+Total Execution Time:     2.7393 seconds
+Inference Throughput:     36505.65 pairs/second

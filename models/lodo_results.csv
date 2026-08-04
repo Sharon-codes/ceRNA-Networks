@@ -1,0 +1,5 @@
+held_out_dataset,n_test,n_cancer_test,n_healthy_test,auc,auc_ci_lo,auc_ci_hi,average_precision,sensitivity_95spec
+GSE101684,8,4,4,0.1875,0.0,0.6667,0.4125,0.0
+GSE126094,20,10,10,0.85,0.64,1.0,0.8488,0.3
+GSE115513,1513,864,649,0.4892,0.4594,0.5165,0.5645,0.0475
+GSE73002,4113,1373,2740,0.5028,0.4835,0.5208,0.3206,0.0117

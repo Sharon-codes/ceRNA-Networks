@@ -1,0 +1,7 @@
+External Validation Cohort (Concern 1)
+======================================
+Dataset: 10x Genomics MIRA (NetTCR-2.0 Test Set)
+Samples: 636 (106 Binders, 530 Non-Binders)
+ROC-AUC:           0.50368
+PR-AUC:            0.18450
+Precision@top-100: 0.24000

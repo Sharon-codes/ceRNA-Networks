@@ -1,0 +1,1 @@
+["mean_degree", "max_degree", "top5_hub_degree", "top1_circ_degree", "max_circ_pagerank", "top5_hub_betweenness", "avg_clustering", "diameter", "graph_entropy", "spectral_entropy", "modularity", "persistence_entropy"]

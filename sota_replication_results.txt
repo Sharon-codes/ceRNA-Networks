@@ -1,0 +1,8 @@
+=== SOTA Model Replication Results ===
+NetTCR-2.0:
+  Test ROC-AUC: 0.50000
+  Optimal Threshold MCC: 0.00000 (threshold: 0.01)
+
+TITAN:
+  Test ROC-AUC: 0.49855
+  Optimal Threshold MCC: 0.00000 (threshold: 0.01)

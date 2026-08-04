@@ -1,0 +1,8 @@
+=== SOTA Model Sanity Check on Native Splits ===
+NetTCR-2.0:
+  Native Test ROC-AUC: 0.82743
+  Native Test PR-AUC: 0.80415
+
+TITAN:
+  Native Test ROC-AUC: 0.83618
+  Native Test PR-AUC: 0.81930

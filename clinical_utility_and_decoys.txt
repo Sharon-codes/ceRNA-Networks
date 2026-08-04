@@ -1,0 +1,13 @@
+=== Clinical Screening Enrichment & Decoy Ablation Report ===
+
+1. Virtual Screening Enrichment (Baseline):
+  Precision@top-100: 1.00000
+  Base Prevalence: 0.50000
+  Enrichment Factor (EF_100): 2.00000
+
+2. Negative Decoy Sampling Ablation Matrix:
+| Negative Sampling Regime | Test ROC-AUC |
+| :--- | :---: |
+| (a) Synthetic Mutational Permutations | 0.49687 |
+| (b) Uniform Random Pool Swapping | 0.64668 |
+| (c) Natural Decoy Derangement (Algorithm 2) | 0.76581 |

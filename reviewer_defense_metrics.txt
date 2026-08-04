@@ -1,0 +1,55 @@
+==================================================
+MODULE 1: LOGISTIC REGRESSION THRESHOLD OPTIMIZATION
+==================================================
+Optimal Threshold (Max MCC): 0.01
+Max MCC Achieved:            0.0000
+F1-Score at Max MCC:         0.6667
+Precision at Max MCC:        0.5000
+Recall at Max MCC:           1.0000
+
+==================================================
+MODULE 2: NETTCR-STYLE CNN BASELINE
+==================================================
+Test ROC-AUC:                     0.5689
+Optimal Threshold (Max MCC):      0.05
+Test MCC (at Optimal Threshold):   0.1953
+
+==================================================
+MODULE 3: MODEL CALIBRATION & HARDWARE DUMP
+==================================================
+Brier Score (Direct Concatenation): 0.3103
+Calibration curve plotted and saved to `./images/Figure_5_Calibration.pdf`
+
+Hyperparameter & Hardware Dump:
+{
+    "model_architecture": {
+        "name": "ESM-MambaTCR (Direct Concatenation)",
+        "projection_head_dimensions": [
+            7040,
+            128,
+            64,
+            1
+        ],
+        "d_model": 64,
+        "dropout": 0.3
+    },
+    "optimizer": {
+        "name": "AdamW",
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "batch_size": 64
+    },
+    "scheduler": {
+        "name": "CosineAnnealingWarmRestarts",
+        "T_0": 10,
+        "T_mult": 1,
+        "eta_min": 1e-06
+    },
+    "hardware_environment": {
+        "CPU": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+        "CPU_Cores": 12,
+        "System_RAM": "15.69 GB",
+        "OS_Platform": "Windows 11"
+    }
+}
+
