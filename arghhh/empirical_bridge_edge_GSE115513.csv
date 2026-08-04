@@ -1,0 +1,2 @@
+dataset,total_edges_base,flipped_lost,flipped_gained,total_flipped,preserved_edges,mean_ebc_flipped,std_ebc_flipped,mean_ebc_preserved,std_ebc_preserved,mann_whitney_u,p_value,rank_biserial_r,community_count_before,community_count_after,abs_delta_C
+GSE115513,10286,193,254,447,10093,0.00026291957353977884,0.0011368140252768005,9.668936696956867e-05,0.0003254134709543683,1376106.0,3.7601116286707145e-23,-0.41287682583065566,100,103,3
