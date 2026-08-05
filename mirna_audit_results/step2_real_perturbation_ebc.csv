@@ -1,0 +1,2 @@
+dataset,total_baseline_edges,flipped_lost_edges,flipped_gained_edges,total_flipped_edges,preserved_edges,mean_ebc_flipped,std_ebc_flipped,mean_ebc_preserved,std_ebc_preserved,ebc_enrichment_ratio,mann_whitney_u,p_value,rank_biserial_r
+GSE73002_vs_GSE115513_Real_Perturbation,973929,972494,7719,980213,1435,9.115188429611998e-07,1.9066858595657137e-05,5.005044214508126e-06,5.874894743136439e-05,0.18212000169728335,571882118.0,1.0,0.18040805590201714

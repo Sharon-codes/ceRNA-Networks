@@ -1,0 +1,20 @@
+================================================================================
+CROSS-CANCER MIRNA DATASET CHARACTERISATION STATEMENT (STEP 8)
+================================================================================
+- Overlapping miRNA Probes Count: 1887
+- Primary Cohort (GSE73002): Serum miRNA profiling, Breast Cancer (N=907 samples)
+  * Mean Pairwise Pearson Correlation: 0.648780
+- Replication Cohort (GSE115513): Tissue miRNA profiling, Colorectal Cancer (N=606 samples)
+  * Mean Pairwise Pearson Correlation: 0.012532
+- Cross-Cohort Correlation Shift (|Delta r|):
+  * Mean Absolute Delta r Across Overlapping Pairs: 0.665425
+  * 95th Percentile Empirical Max Delta r: 0.958047
+
+MODALITY STATEMENT:
+Both datasets evaluated in this audit comprise non-coding RNA microRNA (miRNA) co-expression 
+profiling by microarray platforms. GSE73002 captures circulating serum miRNA expression 
+in a liquid biopsy breast cancer cohort, whereas GSE115513 captures tissue miRNA expression 
+in a colorectal cancer cohort. All structural, topological, and betweenness centrality 
+vulnerabilities audited herein pertain specifically to empirical miRNA co-expression 
+networks derived from raw, non-synthetic clinical expression matrices.
+================================================================================

@@ -1,0 +1,2 @@
+dataset,total_baseline_edges,flipped_lost_edges,flipped_gained_edges,total_flipped_edges,preserved_edges,mean_ebc_flipped,std_ebc_flipped,mean_ebc_preserved,std_ebc_preserved,ebc_enrichment_ratio,mann_whitney_u,p_value,rank_biserial_r
+GSE115513,674,121,968,1089,553,0.00012556156066439154,0.0001632295627861786,0.00010288467904577583,0.00025968216889322456,1.2204106637501932,42197.0,3.31590121944334e-06,-0.2612496824234454

@@ -1,0 +1,62 @@
+================================================================================
+          CONSOLIDATED PEER-REVIEW REVISION AUDIT RESULTS SUMMARY (STEP 9)
+================================================================================
+
+--- STEP 1: EMPIRICAL DELTA-R DISTRIBUTION ---
+  * Overlapping miRNA Probes: 1887
+  * Mean Delta r: 0.636248 | Mean |Delta r|: 0.665425 | Std Delta r: 0.346153
+  * Absolute Delta r Percentiles:
+      - 5th: 0.105151 | 25th: 0.448186 | 50th (Median): 0.779692 | 75th: 0.897102
+      - 90th: 0.939750 | 95th (EMPIRICAL_MAX_DELTA_R): 0.958047 | 99th: 1.069553
+  * Fraction Pairs with |Delta r| > 0.01: 0.9953 | > 0.02: 0.9907 | > 0.035: 0.9837 | > 0.05: 0.9771 | > 0.10: 0.9526
+  * EMPIRICAL_MAX_DELTA_R (95th Percentile) = 0.958047
+
+--- STEP 2: EMPIRICAL BRIDGE-EDGE VULNERABILITY (REAL DELTA-R PERTURBATION) ---
+  * Total Baseline Edges (GSE73002): 973929
+  * Flipped Lost Edges: 972494 | Flipped Gained Edges: 7719 | Total Flipped: 980213
+  * Mean EBC Flipped Edges: 9.115188e-07 ± 1.906686e-05
+  * Mean EBC Preserved Edges: 5.005044e-06 ± 5.874895e-05
+  * EBC Enrichment Ratio (Flipped / Preserved): 0.1821x
+  * Mann-Whitney U Test: Statistic = 571882118.0, p-value = 1.000000e+00, Rank-Biserial r = 0.1804
+
+--- STEP 3: CALIBRATED HETEROSCEDASTIC EBC VULNERABILITY (MAX DELTA-R = 0.9580) ---
+  * GSE73002 (Breast Cancer):
+      - Flipped Edges: 2708 | Preserved Edges: 115148
+      - Mean EBC Flipped: 1.660026e-05 | Preserved: 8.338979e-06
+      - Enrichment Ratio: 1.9907x | Mann-Whitney p-value: 1.691834e-81
+  * GSE115513 (Colorectal Cancer):
+      - Flipped Edges: 1089 | Preserved Edges: 553
+      - Mean EBC Flipped: 1.255616e-04 | Preserved: 1.028847e-04
+      - Enrichment Ratio: 1.2204x | Mann-Whitney p-value: 3.315901e-06
+
+--- STEP 4: EMPIRICAL THRESHOLD SWEEP (GSE73002) ---
+ theta  baseline_edge_count  flipped_edge_count  graph_edit_distance  mean_ebc_flipped  mean_ebc_preserved  ebc_enrichment_ratio  mann_whitney_p_value  community_count_before  community_count_after  abs_delta_C
+ 0.700               118193                2109               2109.0          0.000020            0.000009              2.321651         4.367902e-252                       4                      5            1
+ 0.725               117592                2419               2419.0          0.000014            0.000008              1.709431         3.812682e-175                       6                      5            1
+ 0.750               116530                2708               2708.0          0.000017            0.000008              1.990682          1.691834e-81                       8                      5            3
+ 0.775               115720                3196               3196.0          0.000010            0.000008              1.253598         9.036137e-157                      11                      6            5
+ 0.800               114470                3918               3918.0          0.000010            0.000008              1.283716          6.378176e-85                      13                      6            7
+
+--- STEP 5: PERMUTATION ROBUSTNESS TEST ---
+ permutation_run  seed  mean_ebc_flipped  mean_ebc_preserved  ebc_enrichment_ratio  mann_whitney_p_value
+               1    42          0.000010            0.000008              1.248992          4.863602e-65
+               2    43          0.000017            0.000008              2.108017         6.697397e-152
+               3    44          0.000014            0.000008              1.701706          9.743697e-87
+               4    45          0.000016            0.000008              1.925704          9.134885e-23
+               5    46          0.000014            0.000008              1.711968          9.284176e-41
+
+--- STEP 6: HARD VS SOFT THRESHOLDING SPECTRAL DISTANCE ---
+  * Hard Threshold (theta = 0.75) Spectral Distance: 0.003488
+  * Soft Threshold (WGCNA beta = 6) Spectral Distance: 0.001082
+  * Spectral Distance Reduction Fold: 3.2231x stability improvement
+
+--- STEP 7: BOUNDARY DENSITY AUDIT (GSE73002) ---
+ theta  empirical_margin_delta_r  count_within_empirical_margin  pct_within_empirical_margin  count_within_fixed_0.02_margin  pct_within_fixed_0.02_margin
+  0.70                  0.958047                         124749                    99.999198                             565                      0.452906
+  0.75                  0.958047                         124749                    99.999198                            1541                      1.235271
+  0.80                  0.958047                         124749                    99.999198                            2803                      2.246894
+  0.85                  0.958047                         124749                    99.999198                            5068                      4.062525
+  0.90                  0.958047                         124749                    99.999198                           21994                     17.630461
+  0.95                  0.958047                         124746                    99.996794                           62320                     49.955912
+
+================================================================================
