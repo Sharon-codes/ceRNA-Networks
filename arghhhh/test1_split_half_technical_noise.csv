@@ -1,0 +1,2 @@
+dataset,delta_r_tech_95th_percentile,total_baseline_edges,total_flipped_edges,mean_ebc_flipped,mean_ebc_preserved,ebc_enrichment_ratio,mann_whitney_u,p_value
+GSE73002,0.06222768243559779,116530,172,9.583412072011137e-05,8.372494677243978e-06,11.446302800798536,6033543.0,1.4555538746500595e-21
