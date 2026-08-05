@@ -223,7 +223,7 @@ enrichment_ratio_step2 = mean_ebc_flip / (mean_ebc_pres + 1e-12)
 if len(ebc_flipped_vals) > 0 and len(ebc_preserved_vals) > 0:
     u_stat_s2, p_val_s2 = stats.mannwhitneyu(ebc_flipped_vals, ebc_preserved_vals, alternative='greater')
     n1, n2 = len(ebc_flipped_vals), len(ebc_preserved_vals)
-    rank_biserial_r_s2 = float(1.0 - (2.0 * u_stat_s2) / (n1 * n2))
+    rank_biserial_r_s2 = float(np.abs((2.0 * u_stat_s2) / (n1 * n2) - 1.0))
 else:
     u_stat_s2, p_val_s2, rank_biserial_r_s2 = 0.0, 1.0, 0.0
 
@@ -318,7 +318,7 @@ def run_calibrated_heteroscedastic_audit(df_matrix, name, max_delta_r=EMPIRICAL_
     if len(ebc_flipped_vals) > 0 and len(ebc_preserved_vals) > 0:
         u_stat, p_val = stats.mannwhitneyu(ebc_flipped_vals, ebc_preserved_vals, alternative='greater')
         n1, n2 = len(ebc_flipped_vals), len(ebc_preserved_vals)
-        rank_biserial_r = float(1.0 - (2.0 * u_stat) / (n1 * n2))
+        rank_biserial_r = float(np.abs((2.0 * u_stat) / (n1 * n2) - 1.0))
     else:
         u_stat, p_val, rank_biserial_r = 0.0, 1.0, 0.0
         
