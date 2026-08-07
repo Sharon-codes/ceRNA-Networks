@@ -1,0 +1,56 @@
+
+================================================================================
+  MATHEMATICALLY STRICT STRUCTURAL FRAGILITY REPORT V2 (DUAL COHORTS)
+================================================================================
+
+--------------------------------------------------------------------------------
+1. COHORT 1: GSE73002 (Breast Cancer Serum)
+--------------------------------------------------------------------------------
+  * Sample Size (N): 1280
+  * Dynamic Target Threshold (theta_target): 0.9440
+  * Network Density at theta_target: 2.4008%
+  * GCC Node Count: 169 / 500 (Disconnected Nodes Excluded: 331)
+  * GCC Edge Count: 2994
+  * Unstable Edges (P_flip > 0.05): 2339 (78.12%)
+  * Stable Edges (P_flip <= 0.05): 655
+  * Mean EBC (Unstable Edges): 7.151388e-04
+  * Mean EBC (Stable Edges): 4.559087e-04
+  * EBC Enrichment Ratio (Unstable / Stable): 1.5686x
+  * Rank-Biserial Effect Size (|r|): 0.1511
+  * 10,000 Edge-Label Permutation Empirical p-value: p < 0.0001 (9.999000e-05)
+  * Baseline GCC KEGG Pathways Enriched (Denominator): 120
+  * Stable Subgraph KEGG Pathways Enriched: 113
+  * Exact Pathways Completely LOST in Stable Subgraph: 13 (Regulatory: 13)
+  * Top 5 Falsely Lost Biological Pathways (Baseline - Stable):
+      1. Non-alcoholic fatty liver disease -- Adjusted P-value = 3.280698e-03
+      2. Progesterone-mediated oocyte maturation -- Adjusted P-value = 4.656206e-03
+      3. Adipocytokine signaling pathway -- Adjusted P-value = 6.189625e-03
+      4. Chemokine signaling pathway -- Adjusted P-value = 8.475304e-03
+      5. VEGF signaling pathway -- Adjusted P-value = 9.151134e-03
+
+--------------------------------------------------------------------------------
+2. COHORT 2: GSE115513 (Colorectal Carcinoma Tissue) (WGCNA TISSUE RESCUE)
+--------------------------------------------------------------------------------
+  * Sample Size (N): 750
+  * Dynamic Target Threshold (theta_target): 0.8190
+  * Network Density at theta_target: 2.5066%
+  * GCC Node Count: 180 / 500 (Disconnected Nodes Excluded: 320)
+  * GCC Edge Count: 2958
+  * Unstable Edges (P_flip > 0.05): 855 (28.90%)
+  * Stable Edges (P_flip <= 0.05): 2103
+  * Mean EBC (Unstable Edges): 1.276304e-03
+  * Mean EBC (Stable Edges): 6.317162e-04
+  * EBC Enrichment Ratio (Unstable / Stable): 2.0204x
+  * Rank-Biserial Effect Size (|r|): 0.3379
+  * 10,000 Edge-Label Permutation Empirical p-value: p < 0.0001 (9.999000e-05)
+  * WGCNA Scale-Free Topology Fit (beta=10): R^2 = 0.9724 -> PASSED (>= 0.85)
+  * WGCNA Soft-Threshold Rescue Variance Reduction:
+      - Unstable Edges Hard Threshold Variance: 0.164814
+      - Unstable Edges Soft Threshold Weight Variance: 6.357139e-04
+      - Numerical Stabilization Fold Gain: 259.26x reduction in structural variance!
+  * Baseline GCC KEGG Pathways Enriched (Denominator): 106
+  * Stable Subgraph KEGG Pathways Enriched: 106
+  * Exact Pathways Completely LOST in Stable Subgraph: 1 (Regulatory: 1)
+  * Top 5 Falsely Lost Biological Pathways (Baseline - Stable):
+      1. Adipocytokine signaling pathway -- Adjusted P-value = 3.819171e-02
+================================================================================
