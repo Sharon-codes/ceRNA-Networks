@@ -21,9 +21,13 @@
   * Rank-Biserial Effect Size (|r|): 0.7622
 
 --- 4. DIFFERENTIAL BIOLOGICAL VALIDATION (ENRICHR) ---
-  * Target Library Used: None
-  * Total Significant Pathways in Unstable Subgraph: 0
-  * Total Significant Pathways in Stable Subgraph: 0
-  * Number of Falsely Lost Regulatory Axes: 0
-  * Top 5 Falsely Lost Regulatory Pathways:
+  * Total Pathways Enriched in Stable Core Graph (Adj P < 0.05): 840
+  * Total Pathways Enriched in Unstable Graph (Adj P < 0.05): 837
+  * Number of Falsely Erased/Lost Biological Pathways: 49
+  * Top 5 Falsely Lost Biological Pathways (Stable - Unstable):
+      1. nsp1 from SARS-CoV-2 inhibits translation initiation in the host cell WP5027 (WikiPathway_2021_Human) -- Adjusted P-value = 5.690896e-04
+      2. Nsp1 From SARS CoV 2 Inhibits Translation Initiation In The Host Cell WP5027 (WikiPathway_2023_Human) -- Adjusted P-value = 1.081880e-03
+      3. Proteasome (KEGG_2021_Human) -- Adjusted P-value = 1.723028e-03
+      4. Ribosome (KEGG_2021_Human) -- Adjusted P-value = 3.677990e-03
+      5. Ethanol effects on histone modifications WP3996 (WikiPathway_2021_Human) -- Adjusted P-value = 8.273429e-03
 ================================================================================

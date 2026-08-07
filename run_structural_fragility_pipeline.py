@@ -223,8 +223,7 @@ print(f"  - Null Model Baseline Mean EBC: {mean_ebc_null:.6e}")
 # ==============================================================================
 print("\n[PROGRESS] Constraint 5: Performing Programmatic Differential Biological Validation...")
 
-def get_mirna_symbols_for_edges(edge_set, node_list, probe_to_sym):
-    probe_indices = list(top500_probes)
+def get_mirna_symbols_for_edges(edge_set, probe_indices, probe_to_sym):
     unique_symbols = set()
     for u, v in edge_set:
         p_u = probe_indices[u]
@@ -235,47 +234,65 @@ def get_mirna_symbols_for_edges(edge_set, node_list, probe_to_sym):
         unique_symbols.add(str(sym_v))
     return list(unique_symbols)
 
-stable_mirnas = get_mirna_symbols_for_edges(stable_edges, list(G_gcc.nodes()), probe_to_symbol)
-unstable_mirnas = get_mirna_symbols_for_edges(unstable_edges, list(G_gcc.nodes()), probe_to_symbol)
+probe_idx_list = list(top500_probes)
+stable_mirnas = get_mirna_symbols_for_edges(stable_edges, probe_idx_list, probe_to_symbol)
+unstable_mirnas = get_mirna_symbols_for_edges(unstable_edges, probe_idx_list, probe_to_symbol)
 
 print(f"  - Unique miRNAs in Stable Edges: {len(stable_mirnas)}")
 print(f"  - Unique miRNAs in Unstable Edges: {len(unstable_mirnas)}")
 
+# 1. miRNA-to-Target Gene Mapping via miRTarBase_2017
+mirtar_dict = gp.get_library(name='miRTarBase_2017', organism='Human')
 
-def run_enrichr_query(gene_list, list_name):
-    # Enrichr libraries to query
-    target_libraries = ['miRTarBase_2017', 'KEGG_2021_Human', 'GO_Biological_Process_2021', 'MSigDB_Hallmark_2020']
-    
-    # Filter non-empty miRNA symbols
-    clean_genes = [g for g in gene_list if g and g != 'nan' and not g.startswith('MIMAT')]
-    if not clean_genes:
-        clean_genes = gene_list
-        
-    for lib in target_libraries:
+def map_mirnas_to_target_genes(mirna_list):
+    target_genes = set()
+    for m in mirna_list:
+        m_str = str(m).strip()
+        if m_str in mirtar_dict:
+            target_genes.update(mirtar_dict[m_str])
+        else:
+            m_clean = m_str.replace('-5p', '').replace('-3p', '')
+            matched_keys = [k for k in mirtar_dict if m_str.lower() in k.lower() or m_clean.lower() in k.lower()]
+            for k in matched_keys[:3]:
+                target_genes.update(mirtar_dict[k])
+    return list(target_genes)
+
+stable_target_mRNAs = map_mirnas_to_target_genes(stable_mirnas)
+unstable_target_mRNAs = map_mirnas_to_target_genes(unstable_mirnas)
+
+print(f"  - Mapped Stable Target mRNA Genes: {len(stable_target_mRNAs)}")
+print(f"  - Mapped Unstable Target mRNA Genes: {len(unstable_target_mRNAs)}")
+
+# 2. Programmatic Pathway Enrichment (gseapy.enrichr)
+def run_pathway_enrichment(gene_list, list_name):
+    pathway_dict = {}  # Term -> Adj P-value
+    target_libs = ['KEGG_2021_Human', 'WikiPathway_2021_Human', 'WikiPathway_2023_Human']
+    for lib in target_libs:
         try:
-            res = gp.enrichr(gene_list=clean_genes, gene_sets=lib, organism='Human', outdir=None)
+            res = gp.enrichr(gene_list=gene_list, gene_sets=lib, organism='human', outdir=None)
             df_res = res.results
             if df_res is not None and not df_res.empty:
-                # Filter for Adjusted P-value < 0.05 (or P-value < 0.05)
-                df_sig = df_res[df_res['Adjusted P-value'] < 0.05].copy()
-                if df_sig.empty:
-                    df_sig = df_res[df_res['P-value'] < 0.05].copy()
-                if not df_sig.empty:
-                    print(f"    * {list_name} ({lib}): {len(df_sig)} significant pathways")
-                    return set(df_sig['Term'].tolist()), df_sig, lib
-        except Exception as e:
+                df_sig = df_res[df_res['Adjusted P-value'] < 0.05]
+                for _, row in df_sig.iterrows():
+                    term = f"{row['Term']} ({lib})"
+                    pathway_dict[term] = float(row['Adjusted P-value'])
+        except Exception:
             continue
-    return set(), pd.DataFrame(), 'None'
+    return pathway_dict
 
-pathways_stable, df_enrich_stable, lib_used_s = run_enrichr_query(stable_mirnas, "Stable Subgraph")
-pathways_unstable, df_enrich_unstable, lib_used_u = run_enrichr_query(unstable_mirnas, "Unstable Subgraph")
+print("  - Running Enrichr pathway analysis for Stable vs Unstable Target Genes...")
+stable_pathways_dict = run_pathway_enrichment(stable_target_mRNAs, "Stable Graph Core")
+unstable_pathways_dict = run_pathway_enrichment(unstable_target_mRNAs, "Unstable Graph")
 
-# Pathways lost due to thresholding instability (in unstable graph, but missing or lost from stable network core)
-lost_pathways = pathways_unstable - pathways_stable
-n_lost_axes = len(lost_pathways)
+print(f"  - Total Enriched Pathways in Stable Core Graph (Adj P < 0.05): {len(stable_pathways_dict)}")
+print(f"  - Total Enriched Pathways in Unstable Graph (Adj P < 0.05): {len(unstable_pathways_dict)}")
 
-print(f"  - Number of Lost Regulatory Axes (Unstable - Stable): {n_lost_axes}")
-top5_lost = list(lost_pathways)[:5] if n_lost_axes > 0 else list(pathways_unstable)[:5]
+# 3. Differential Analysis Output: (Stable Pathways) - (Unstable Pathways)
+lost_pathways_terms = set(stable_pathways_dict.keys()) - set(unstable_pathways_dict.keys())
+n_lost_axes = len(lost_pathways_terms)
+
+sorted_lost = sorted([(term, stable_pathways_dict[term]) for term in lost_pathways_terms], key=lambda x: x[1])
+top5_lost = sorted_lost[:5]
 
 
 # ==============================================================================
@@ -320,15 +337,14 @@ report_text = f"""
   * Rank-Biserial Effect Size (|r|): {rank_biserial_r:.4f}
 
 --- 4. DIFFERENTIAL BIOLOGICAL VALIDATION (ENRICHR) ---
-  * Target Library Used: {lib_used_u}
-  * Total Significant Pathways in Unstable Subgraph: {len(pathways_unstable)}
-  * Total Significant Pathways in Stable Subgraph: {len(pathways_stable)}
-  * Number of Falsely Lost Regulatory Axes: {n_lost_axes}
-  * Top 5 Falsely Lost Regulatory Pathways:
+  * Total Pathways Enriched in Stable Core Graph (Adj P < 0.05): {len(stable_pathways_dict)}
+  * Total Pathways Enriched in Unstable Graph (Adj P < 0.05): {len(unstable_pathways_dict)}
+  * Number of Falsely Erased/Lost Biological Pathways: {n_lost_axes}
+  * Top 5 Falsely Lost Biological Pathways (Stable - Unstable):
 """
 
-for i, p in enumerate(top5_lost, 1):
-    report_text += f"      {i}. {p}\n"
+for i, (term, p_adj) in enumerate(top5_lost, 1):
+    report_text += f"      {i}. {term} -- Adjusted P-value = {p_adj:.6e}\n"
 
 report_text += "=" * 80 + "\n"
 
