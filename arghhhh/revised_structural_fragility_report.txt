@@ -1,0 +1,41 @@
+
+================================================================================
+  REVISED STRUCTURAL FRAGILITY REPORT (GSE73002 BREAST CANCER COHORT)
+================================================================================
+
+--- 1. SPARSITY-TARGETED THRESHOLDING (TARGET DENSITY = 2.5%) ---
+  * Optimal Dynamic Threshold (theta_target): 0.9440
+  * Network Density at theta_target: 2.4008%
+  * Baseline Edge Count: 2995
+  * GCC Node Count: 169 / 500
+  * GCC Edge Count: 2994
+
+--- 2. SENSITIVITY SWEEP ACROSS INSTABILITY DEFINITIONS ---
+  * Flip Prob > 2%:  Unstable = 2573 edges, Mean EBC = 6.962810e-04, Enrichment = 1.6303x
+  * Flip Prob > 5%:  Unstable = 2339 edges, Mean EBC = 7.151388e-04, Enrichment = 1.5686x
+  * Flip Prob > 10%: Unstable = 2016 edges, Mean EBC = 7.385088e-04, Enrichment = 1.4969x
+
+--- 3. 5% INSTABILITY STATISTICAL METRICS ---
+  * Mann-Whitney U Statistic: 881799.0
+  * Mann-Whitney p-value: 1.602614e-09
+  * Rank-Biserial Effect Size (|r|): 0.1511
+
+--- 4. WGCNA SOFT-THRESHOLDING CONTROL ---
+  * Optimal Soft Power Beta: 20
+  * Scale-Free Topology Fit R^2: 0.6074
+  * Unstable Edges Hard Threshold Variance: 0.179990
+  * Unstable Edges Soft Threshold Variance: 2.548400e-03
+  * Soft-Threshold Variance Reduction: 70.63x structural variance reduction
+
+--- 5. UPDATED REGULATORY BIOLOGICAL VALIDATION (KEGG) ---
+  * Total Significant KEGG Pathways in Stable Core Graph: 113
+  * Total Significant KEGG Pathways in Unstable Graph: 120
+  * Total Falsely Erased Regulatory/Oncogenic Pathways: 6
+  * Top 10 Falsely Erased Regulatory/Oncogenic Pathways:
+       1. Phagosome -- Adjusted P-value = 1.973442e-02
+       2. IL-17 signaling pathway -- Adjusted P-value = 1.988111e-02
+       3. Chemical carcinogenesis -- Adjusted P-value = 2.330577e-02
+       4. Protein export -- Adjusted P-value = 2.857803e-02
+       5. Circadian rhythm -- Adjusted P-value = 3.811117e-02
+       6. Oocyte meiosis -- Adjusted P-value = 4.227987e-02
+================================================================================
