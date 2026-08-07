@@ -1,0 +1,50 @@
+
+================================================================================
+     DUAL-COHORT MATHEMATICALLY STRICT STRUCTURAL FRAGILITY REPORT
+================================================================================
+
+--------------------------------------------------------------------------------
+1. COHORT 1: GSE73002 (Breast Cancer Serum)
+--------------------------------------------------------------------------------
+  * Homogeneous Sample Size (N): 1280
+  * Dynamic Target Threshold (theta_target): 0.9440
+  * Network Density at theta_target: 2.4008%
+  * GCC Edge Count: 2994 (Disconnected Nodes Excluded: 331)
+  * Unstable Edges (P_flip > 0.05): 2339 (78.12%)
+  * Stable Edges (P_flip <= 0.05): 655
+  * Mean EBC Unstable Edges: 7.151388e-04
+  * Mean EBC Stable Edges: 4.559087e-04
+  * EBC Enrichment Ratio (Unstable / Stable): 1.5686x
+  * Rank-Biserial Effect Size (|r|): 0.1511
+  * Edge-Label Permutation Empirical p-value (N=1000): 9.990010e-04
+  * WGCNA Scale-Free Topology Fit (beta=20): R^2 = 0.6074 -> FAILED (< 0.85)
+  * Falsely Erased Regulatory/Oncogenic Pathways: 6
+  * Top 5 Falsely Lost Biological Pathways:
+      1. Phagosome -- Adjusted P-value = 1.973442e-02
+      2. IL-17 signaling pathway -- Adjusted P-value = 1.988111e-02
+      3. Chemical carcinogenesis -- Adjusted P-value = 2.330577e-02
+      4. Protein export -- Adjusted P-value = 2.857803e-02
+      5. Circadian rhythm -- Adjusted P-value = 3.811117e-02
+
+--------------------------------------------------------------------------------
+2. COHORT 2: GSE115513 (Colorectal Carcinoma Tissue)
+--------------------------------------------------------------------------------
+  * Homogeneous Sample Size (N): 750
+  * Dynamic Target Threshold (theta_target): 0.8190
+  * Network Density at theta_target: 2.5066%
+  * GCC Edge Count: 2958 (Disconnected Nodes Excluded: 320)
+  * Unstable Edges (P_flip > 0.05): 855 (28.90%)
+  * Stable Edges (P_flip <= 0.05): 2103
+  * Mean EBC Unstable Edges: 1.276304e-03
+  * Mean EBC Stable Edges: 6.317162e-04
+  * EBC Enrichment Ratio (Unstable / Stable): 2.0204x
+  * Rank-Biserial Effect Size (|r|): 0.3379
+  * Edge-Label Permutation Empirical p-value (N=1000): 9.990010e-04
+  * WGCNA Scale-Free Topology Fit (beta=10): R^2 = 0.9724 -> PASSED (>= 0.85)
+  * Falsely Erased Regulatory/Oncogenic Pathways: 4
+  * Top 5 Falsely Lost Biological Pathways:
+      1. Epithelial cell signaling in Helicobacter pylori infection -- Adjusted P-value = 2.308026e-02
+      2. Circadian entrainment -- Adjusted P-value = 3.211733e-02
+      3. SNARE interactions in vesicular transport -- Adjusted P-value = 3.269357e-02
+      4. NF-kappa B signaling pathway -- Adjusted P-value = 4.425617e-02
+================================================================================
