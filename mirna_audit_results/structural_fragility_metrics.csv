@@ -1,0 +1,2 @@
+gcc_edge_count,unstable_edge_count,unstable_edge_pct,stable_edge_count,mean_ebc_unstable,mean_ebc_stable,mean_ebc_null,ebc_enrichment_unstable_stable,ebc_enrichment_unstable_null,mann_whitney_u,p_value,rank_biserial_r,n_lost_regulatory_axes
+96220,5993,6.2284348368322595,90227,5.2192564491299364e-05,1.156718268883898e-05,1.216496383821264e-05,4.512123771463859,4.290399946521165,476430197.0,0.0,0.7621727474839584,0

@@ -1,0 +1,29 @@
+
+================================================================================
+  STRUCTURAL FRAGILITY AUDIT TERMINAL REPORT (GSE73002 BREAST CANCER SERUM)
+================================================================================
+
+--- 1. GCC NETWORK TOPOLOGY & EDGE FRAGILITY ---
+  * Giant Connected Component (GCC) Edge Count: 96220
+  * Unstable Edge Count (P_flip > 0.05): 5993 (6.23%)
+  * Stable Edge Count (P_flip <= 0.05): 90227 (93.77%)
+
+--- 2. EDGE BETWEENNESS CENTRALITY (EBC) METRICS ---
+  * Mean EBC (Unstable Edges): 5.219256e-05
+  * Mean EBC (Stable Edges): 1.156718e-05
+  * Mean EBC (Degree-Preserving Null Model): 1.216496e-05
+  * EBC Enrichment Ratio (Unstable / Stable): 4.5121x
+  * EBC Enrichment Ratio (Unstable / Null Model): 4.2904x
+
+--- 3. MANN-WHITNEY U TEST & RANK-BISERIAL EFFECT SIZE ---
+  * Mann-Whitney U Statistic: 476430197.0
+  * Mann-Whitney p-value: 0.000000e+00
+  * Rank-Biserial Effect Size (|r|): 0.7622
+
+--- 4. DIFFERENTIAL BIOLOGICAL VALIDATION (ENRICHR) ---
+  * Target Library Used: None
+  * Total Significant Pathways in Unstable Subgraph: 0
+  * Total Significant Pathways in Stable Subgraph: 0
+  * Number of Falsely Lost Regulatory Axes: 0
+  * Top 5 Falsely Lost Regulatory Pathways:
+================================================================================
