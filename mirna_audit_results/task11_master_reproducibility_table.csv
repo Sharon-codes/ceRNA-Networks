@@ -1,0 +1,16 @@
+Manuscript Location,Parameter / Metric,Reported Value,Generating Function,Dataset,Date Computed
+Abstract & Results 3.1,GSE73002 Sample Size N,"1,280",load_and_preprocess_cohort(),GSE73002_series_matrix.txt.gz,2026-08-08
+Abstract & Results 3.1,GSE115513 Sample Size N,750,load_and_preprocess_cohort(),GSE115513_series_matrix.txt.gz,2026-08-08
+Results 3.1,GSE73002 Dynamic Threshold theta_target,0.9440,execute_main_cohort_pipeline(),GSE73002,2026-08-08
+Results 3.1,GSE115513 Dynamic Threshold theta_target,0.8190,execute_main_cohort_pipeline(),GSE115513,2026-08-08
+Results 3.2,GSE73002 Instability Rate (%),78.12%,execute_main_cohort_pipeline(),GSE73002,2026-08-08
+Results 3.2,GSE115513 Instability Rate (%),28.90%,execute_main_cohort_pipeline(),GSE115513,2026-08-08
+Results 3.2,GSE73002 EBC Enrichment Ratio,1.5686x,execute_main_cohort_pipeline(),GSE73002,2026-08-08
+Results 3.2,GSE115513 EBC Enrichment Ratio,2.0204x,execute_main_cohort_pipeline(),GSE115513,2026-08-08
+Results 3.2,GSE73002 Rank-Biserial |r|,0.1511,execute_main_cohort_pipeline(),GSE73002,2026-08-08
+Results 3.2,GSE115513 Rank-Biserial |r|,0.3379,execute_main_cohort_pipeline(),GSE115513,2026-08-08
+Results 3.2,"10,000 Permutation Empirical p-value",p < 0.0001,execute_main_cohort_pipeline(),GSE73002 & GSE115513,2026-08-08
+Results 3.3,Tissue Mean Pathway Stability (Hard vs Soft),0.8460 vs 0.8654,execute_main_cohort_pipeline(),GSE115513,2026-08-08
+Results 3.3,Tissue Functional Redundancy Mean miRNAs/Pathway,117.53,execute_main_cohort_pipeline(),GSE115513,2026-08-08
+Results 3.5,GSE172232 Validation EBC Enrichment Ratio,3.9433x,run_gse172232_pipeline(),GSE172232_TPM_Matrix.txt.gz,2026-08-08
+Results 3.5,GSE172232 Validation Rank-Biserial |r|,0.4677,run_gse172232_pipeline(),GSE172232_TPM_Matrix.txt.gz,2026-08-08
