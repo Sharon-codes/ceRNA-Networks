@@ -1,0 +1,21 @@
+
+================================================================================
+                               MANUSCRIPT NUMBERS
+================================================================================
+Number of Modules: 6
+Module Node Sizes: [48, 17, 37, 29, 3, 46]
+Modularity Score Q: 0.2161
+Intra-Module Edge Count: 1357
+Inter-Module Edge Count: 1601
+Fraction of Edges Inter-Module: 0.5412 (54.12%)
+Intra-Module Edge Density (p_intra): 0.402193
+Inter-Module Edge Density (p_inter): 0.125707
+Mean Null EBC Enrichment Ratio: 1.0001
+Std Dev Null EBC Enrichment Ratio: 0.0065
+95th Percentile of Null EBC Enrichment Ratio: 1.0109
+Empirical EBC Enrichment Ratio: 2.0204x
+Modularity-Preserving Null Empirical p-value: 9.990010e-04 (p < 0.001)
+
+Conclusion:
+"The empirical 2.02x EBC enrichment is highly statistically anomalous (p < 0.001) and significantly exceeds the 95th percentile of the modularity-preserving null distribution (1.01x), demonstrating that bridge-edge structural vulnerability is driven by global network fragility rather than modular topology alone."
+================================================================================
