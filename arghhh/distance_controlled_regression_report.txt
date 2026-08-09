@@ -1,0 +1,24 @@
+
+================================================================================
+  DISTANCE-CONTROLLED GLM REGRESSION REPORT (UN-CENSORED PREPROCESSING)
+================================================================================
+
+1. COHORT 1: GSE115513 Tissue
+--------------------------------------------------------------------------------
+  * Sample Size (N): 750
+  * Dynamic Target Threshold (theta_target): 0.8190
+  * GCC Node Count: 180, GCC Edge Count: 2958
+  * Distance Coefficient (z_Distance): -5.0545 (p-value = 0.000000e+00)
+  * EBC Coefficient (z_EBC): 0.0018 (SE = 0.0018, z = 1.0377, p-value = 2.994142e-01)
+  * VERDICT: Hypothesis Dead: EBC does not predict instability independent of threshold proximity.
+
+--------------------------------------------------------------------------------
+2. COHORT 2: GSE73002 Serum
+--------------------------------------------------------------------------------
+  * Sample Size (N): 1280
+  * Dynamic Target Threshold (theta_target): 0.9580
+  * GCC Node Count: 183, GCC Edge Count: 3115
+  * Distance Coefficient (z_Distance): -1.6110 (p-value = 0.000000e+00)
+  * EBC Coefficient (z_EBC): -0.0037 (SE = 0.0012, z = -2.9779, p-value = 2.902363e-03)
+  * VERDICT: Hypothesis Confirmed: EBC significantly predicts instability independent of threshold proximity (beta = -0.0037, p = 2.902363e-03).
+================================================================================

@@ -1,0 +1,3 @@
+cohort,N_samples,theta_target,v_gcc,e_gcc,z_Distance_coef,z_Distance_pval,z_EBC_coef,z_EBC_se,z_EBC_zstat,z_EBC_pval,verdict
+GSE115513 Tissue,750,0.8189999999999998,180,2958,-5.054495491568646,0.0,0.0018265642802892236,0.0017602207169580158,1.037690479774526,0.2994141786072513,Hypothesis Dead: EBC does not predict instability independent of threshold proximity.
+GSE73002 Serum,1280,0.958,183,3115,-1.6109599768601581,0.0,-0.0036721187671186198,0.0012331260821258623,-2.9778940047947304,0.0029023633713962313,"Hypothesis Confirmed: EBC significantly predicts instability independent of threshold proximity (beta = -0.0037, p = 2.902363e-03)."
