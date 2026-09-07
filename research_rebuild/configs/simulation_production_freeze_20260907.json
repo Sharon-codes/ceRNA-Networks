@@ -1,0 +1,82 @@
+{
+  "utc": "2026-09-07T12:07:12Z",
+  "pilot_runtime_only": [
+    {
+      "cell": "n60_s0.5_g0",
+      "seconds": 6.616079200000968,
+      "note": "pilot comparative outcomes not inspected; only runtime retained"
+    },
+    {
+      "cell": "n240_s1_g0.6",
+      "seconds": 6.383142600010615,
+      "note": "pilot comparative outcomes not inspected; only runtime retained"
+    }
+  ],
+  "projected_seconds_R60": 3969.6475200005807,
+  "datasets_per_cell": 30,
+  "B": 100,
+  "cells": [
+    {
+      "id": "n60_s0.5_g0",
+      "n": 60,
+      "scale": 0.5,
+      "nuisance": 0
+    },
+    {
+      "id": "n60_s0.5_g0.6",
+      "n": 60,
+      "scale": 0.5,
+      "nuisance": 0.6
+    },
+    {
+      "id": "n60_s1_g0",
+      "n": 60,
+      "scale": 1.0,
+      "nuisance": 0
+    },
+    {
+      "id": "n60_s1_g0.6",
+      "n": 60,
+      "scale": 1.0,
+      "nuisance": 0.6
+    },
+    {
+      "id": "n60_null",
+      "n": 60,
+      "scale": 0,
+      "nuisance": 0
+    },
+    {
+      "id": "n240_s0.5_g0",
+      "n": 240,
+      "scale": 0.5,
+      "nuisance": 0
+    },
+    {
+      "id": "n240_s0.5_g0.6",
+      "n": 240,
+      "scale": 0.5,
+      "nuisance": 0.6
+    },
+    {
+      "id": "n240_s1_g0",
+      "n": 240,
+      "scale": 1.0,
+      "nuisance": 0
+    },
+    {
+      "id": "n240_s1_g0.6",
+      "n": 240,
+      "scale": 1.0,
+      "nuisance": 0.6
+    },
+    {
+      "id": "n240_null",
+      "n": 240,
+      "scale": 0,
+      "nuisance": 0
+    }
+  ],
+  "reason": "runtime-based freeze before production outcomes",
+  "worst_case_normal_halfwidth_bounded_mean": 0.17892270211835426
+}
