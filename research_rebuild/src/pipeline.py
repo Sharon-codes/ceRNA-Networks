@@ -65,7 +65,8 @@ def stability(acc,g,boot,powers=None):
                     draw=rng_for(CFG['seed'],f'{acc}_cv_mc',b).integers(0,B,B)
                     hc,sc=cv(h[draw][:,valid]),cv(s[draw][:,valid]);ok=np.isfinite(hc)&np.isfinite(sc)
                     mc.append(1-np.mean(sc[ok])/np.mean(hc[ok]))
-                rows.append({'analysis':acc,'sign':sign,'beta':beta,'support':mode,'focal':scope,'valid_B':B,'nodes':len(ids),'valid_paired_nodes':len(valid),'undefined_nodes':len(ids)-len(valid),'mean_hard_cv':mh,'mean_soft_cv':ms,'median_hard_cv':np.median(hcv[valid]),'median_soft_cv':np.median(scv[valid]),'ratio_mean_reduction':reduction,'mean_nodewise_reduction':np.mean(1-scv[valid]/hcv[valid]),'reduction_mc_low':np.quantile(mc,.025),'reduction_mc_high':np.quantile(mc,.975),'interval_meaning':'complete-replicate-vector resampling; Monte Carlo only'})
+                nv=valid[hcv[valid]>1e-12]
+                rows.append({'analysis':acc,'sign':sign,'beta':beta,'support':mode,'focal':scope,'valid_B':B,'nodes':len(ids),'valid_paired_nodes':len(valid),'undefined_nodes':len(ids)-len(valid),'mean_hard_cv':mh,'mean_soft_cv':ms,'median_hard_cv':np.median(hcv[valid]),'median_soft_cv':np.median(scv[valid]),'ratio_mean_reduction':reduction,'mean_nodewise_reduction':np.mean(1-scv[nv]/hcv[nv]),'nodewise_reduction_valid_nodes':len(nv),'reduction_mc_low':np.quantile(mc,.025),'reduction_mc_high':np.quantile(mc,.975),'interval_meaning':'complete-replicate-vector resampling; Monte Carlo only'})
             if beta==6:
                 for i in range(n):nodes.append({'analysis':acc,'sign':sign,'support':mode,'node':i,'mean_hard':h[:,i].mean(),'mean_soft':s[:,i].mean(),'hard_cv':hcv[i],'soft_cv':scv[i]})
                 if mode=='full':
@@ -114,8 +115,11 @@ def sensitivity(acc):
     for name,k,scale,missing,fraction in settings:
         df,meta,selected,x=prepare(acc,k,scale,missing,fraction);label=acc+'_'+name;r=spearman(x)
         g=graph_from(r);boot,_=bootstrap(x,CFG['sensitivity_replicates'],label,CFG['seed'],CH)
+        if len(boot)<20:
+            rows.append({'analysis':label,'status':'failed','reason':'Fewer than 20 valid full-matrix bootstrap replicates; constant rare probes cause undefined Spearman correlations','samples':len(x),'requested_features':k,'selected_features':len(selected),'attempted_B':CFG['sensitivity_replicates'],'valid_B':len(boot),**g['summary']})
+            continue
         model=fit_all(g,boot,label);coefs.extend(model['coefficients'])
-        rows.append({'analysis':label,'samples':len(x),'requested_features':k,'selected_features':len(selected),'valid_B':len(boot),'feature_overlap_primary':len(set(selected.index)&set(base.index)),**g['summary']})
+        rows.append({'analysis':label,'status':'completed','samples':len(x),'requested_features':k,'selected_features':len(selected),'valid_B':len(boot),'feature_overlap_primary':len(set(selected.index)&set(base.index)),**g['summary']})
         if scale=='log1p':
             original=spearman(df.loc[selected.index].T.to_numpy());table(acc+'_rank_transform_check',[{'fixed_feature_max_abs_difference':np.max(np.abs(original-r)),'selected_overlap':len(set(selected.index)&set(base.index)),'selection_set_size':len(selected)}])
     table(acc+'_targeted_sensitivity',rows);table(acc+'_targeted_coefficients',coefs)
@@ -125,18 +129,22 @@ def split_validation(acc):
     df,meta,_=cohort(acc);order=rng_for(CFG['seed'],acc+'_split',0).permutation(df.shape[1]);a,b=np.array_split(order,2)
     selection,_,_=select_features(df.iloc[:,a],500);ids=selection.index
     # Complete-case selection only uses reference half. Missing validation probes remain explicit exclusions.
-    val=df.loc[ids].iloc[:,b];valid=val.notna().all(axis=1)
-    if not valid.all():
-        # No imputation; this changes the graph pair evaluation universe but never reference feature selection.
-        raise ValueError(f'{int(sum(~valid))} reference-selected probes missing in validation; prespecified complete-case transfer blocked')
-    x=selection.T.to_numpy();z=val.T.to_numpy();r=spearman(x);g=graph_from(r)
+    val=df.loc[ids].iloc[:,b];valid=val.notna().all(axis=1)&(val.max(axis=1)>val.min(axis=1))
+    x=selection.T.to_numpy();z=val.loc[valid].T.to_numpy();r=spearman(x);g=graph_from(r)
     train,_=bootstrap(x,CFG['split_replicates'],acc+'_split_reference',CFG['seed'],CH)
     test,_=bootstrap(z,CFG['split_replicates'],acc+'_split_validation',CFG['seed'],CH)
-    fit=fit_all(g,train,acc+'_split_reference');y=(np.abs(test[:,g['pair_indices']])<g['summary']['theta']).astype(float)
+    fit=fit_all(g,train,acc+'_split_reference')
+    eligible=np.all(valid.to_numpy()[g['edges']],axis=1)
+    old_to_new={old:new for new,old in enumerate(np.flatnonzero(valid))}
+    tu,tv=np.triu_indices(sum(valid),1);lookup={(i,j):k for k,(i,j) in enumerate(zip(tu,tv))}
+    transfer_idx=[lookup[(old_to_new[i],old_to_new[j])] for i,j in g['edges'][eligible]]
+    y=np.full((len(test),len(g['edges'])),np.nan)
+    y[:,eligible]=(np.abs(test[:,transfer_idx])<g['summary']['theta']).astype(float)
     rows=[];losses={}
     for name,(model,design,keep,cov) in fit['objects'].items():
+        keep=keep&eligible
         pred=model.predict(design[keep]);loss=logloss(y[:,keep],pred);losses[name]=loss
-        rows.append({'analysis':acc,'model':name,'reference_n':len(x),'validation_n':len(z),'valid_B':len(test),'validation_logloss':loss.mean(),'loss_mcse':loss.std(ddof=1)/np.sqrt(len(loss)),'meaning':'held-out arrays; intervals reflect bootstrap Monte Carlo error only'})
+        rows.append({'analysis':acc,'model':name,'reference_n':len(x),'validation_n':len(z),'valid_B':len(test),'reference_features':len(ids),'valid_validation_features':sum(valid),'evaluation_edges':sum(keep),'unavailable_reference_edges':sum(~eligible),'validation_logloss':loss.mean(),'loss_mcse':loss.std(ddof=1)/np.sqrt(len(loss)),'meaning':'held-out arrays on evaluable reference edges; intervals reflect bootstrap Monte Carlo error only'})
     contrasts=[]
     for name in ['linear_distance','spline_distance','uncertainty_distance']:
         change=losses[name+'_ebc']-losses[name];error=change.std(ddof=1)/np.sqrt(len(change))
@@ -148,22 +156,32 @@ def split_validation(acc):
 
 def full_pipeline(acc):
     df,meta,_=cohort(acc);selected,_,_=select_features(df,500);g=graph_from(spearman(selected.T.to_numpy()));nodes=selected.index.to_numpy();u,v=g['edges'].T;base_edges=set(tuple(sorted((nodes[i],nodes[j]))) for i,j in zip(u,v));base_features=set(nodes)
+    def hubs(r,names,theta):
+        score=np.abs(r);np.fill_diagonal(score,0);hard=(score>=theta).sum(axis=1);soft=(score**6).sum(axis=1)
+        return set(names[np.argsort(-hard,kind='stable')[:20]]),set(names[np.argsort(-soft,kind='stable')[:20]])
+    hbase,sbase=hubs(g['r'],nodes,g['summary']['theta'])
     rows=[];start=time.perf_counter()
     for b in range(CFG['full_pipeline_replicates']):
         sample=rng_for(CFG['seed'],acc+'_full_pipeline',b).integers(0,len(meta),len(meta))
         x,_,_=select_features(df.iloc[:,sample],500);r=spearman(x.T.to_numpy());gg=graph_from(r);ids=x.index.to_numpy();edges=set(tuple(sorted((ids[i],ids[j]))) for i,j in gg['edges'])
-        rows.append({'replicate':b,'selected_features':len(x),'feature_jaccard':len(set(ids)&base_features)/len(set(ids)|base_features),'edge_jaccard':len(edges&base_edges)/len(edges|base_edges),**gg['summary']})
+        hh,ss=hubs(r,ids,gg['summary']['theta'])
+        rows.append({'replicate':b,'selected_features':len(x),'feature_jaccard':len(set(ids)&base_features)/len(set(ids)|base_features),'edge_jaccard':len(edges&base_edges)/len(edges|base_edges),'hard_top20_overlap':len(hh&hbase)/20,'soft_top20_overlap':len(ss&sbase)/20,**gg['summary']})
         if (b+1)%20==0:print(acc,'full pipeline',b+1,'seconds',time.perf_counter()-start,flush=True)
     table(acc+'_full_pipeline',rows);return {'completed':len(rows),'seconds':time.perf_counter()-start}
 
+def stability_only(acc):
+    _,_,selected,x=prepare(acc);r=spearman(x);boot,_=bootstrap(x,CFG['bootstrap_replicates'],acc+'_primary',CFG['seed'],CH)
+    return [stability(acc,graph_from(r,sign=sign),boot) for sign in ['unsigned','positive']]
+
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('stage',choices=['qc','primary','sensitivity','split','full']);parser.add_argument('--cohort',default='both');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('stage',choices=['qc','primary','sensitivity','split','full','stability']);parser.add_argument('--cohort',default='both');args=parser.parse_args()
     cohorts=['GSE115513','GSE73002'] if args.cohort=='both' else [args.cohort]
     status_file=RUN/'logs'/f'status_{args.stage}_{args.cohort}.json';states={};start=time.perf_counter()
+    write_json(RUN/'logs'/f'provenance_{args.stage}_{args.cohort}.json',{'utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'commit':git('rev-parse','HEAD'),'dirty_diff_hash':hashlib.sha256(git('diff','HEAD').encode()).hexdigest(),'sources':{p.name:sha(p) for p in (BASE/'src').glob('*.py')},'config_sha256':CH})
     for acc in cohorts:
         states[acc]={'status':'running'};write_json(status_file,states)
         try:
-            result={'qc':qc,'primary':primary,'sensitivity':sensitivity,'split':split_validation,'full':full_pipeline}[args.stage](acc)
+            result={'qc':qc,'primary':primary,'sensitivity':sensitivity,'split':split_validation,'full':full_pipeline,'stability':stability_only}[args.stage](acc)
             states[acc]={'status':'completed','result':result,'elapsed_seconds':time.perf_counter()-start}
         except Exception as e:
             traceback.print_exc();states[acc]={'status':'failed','error':repr(e),'traceback':traceback.format_exc()}

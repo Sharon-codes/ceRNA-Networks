@@ -56,5 +56,47 @@ class ScientificTests(unittest.TestCase):
         for a in ['GSE115513','GSE73002']:
             d,m,_=cohort(a);self.assertEqual(list(d.columns),list(m.index));self.assertTrue(m.index.is_unique)
             if 'individual'in m:self.assertTrue(m.individual.is_unique)
+    def test_simulated_batch_spearman(self):
+        from simulations import batch_spearman
+        rng=np.random.default_rng(4);x=np.round(rng.normal(size=(30,8)),1);ids=rng.integers(0,30,(10,30))
+        r,bad=batch_spearman(x,ids);self.assertEqual(bad,0)
+        for i,row in enumerate(ids):np.testing.assert_allclose(r[i],spearmanr(x[row],axis=0).statistic,atol=1e-14)
+    def test_repeated_subject_rejected(self):
+        from unittest.mock import patch
+        d=pd.DataFrame([[1,2],[3,4]],columns=['a','b'])
+        m=pd.DataFrame({'tissue':['Carcinoma','Carcinoma'],'individual':['same','same']},index=['a','b'])
+        with patch('core.read_geo',return_value=(d,m,[])):
+            with self.assertRaises(ValueError):cohort('GSE115513')
+        # Restore the real deterministic selection manifest after this numerical fixture.
+        cohort('GSE115513')
+    def test_cache_resume_and_invalidation(self):
+        x=np.arange(40).reshape(10,4)+np.random.default_rng(1).normal(size=(10,4))
+        b,path=bootstrap(x,4,'test_SIMULATED_cache_fixture',17,'test_config')
+        c,path2=bootstrap(x,4,'test_SIMULATED_cache_fixture',17,'test_config')
+        np.testing.assert_array_equal(b,c);self.assertEqual(path,path2)
+        f=path/'00000.npz';f.write_bytes(b'intentionally corrupted unit-test cache')
+        d,_=bootstrap(x,4,'test_SIMULATED_cache_fixture',17,'test_config');np.testing.assert_array_equal(b,d)
+        _,different=bootstrap(x,4,'test_SIMULATED_cache_fixture',17,'different_config');self.assertNotEqual(path,different)
+    def test_saved_cv_and_figures(self):
+        import json
+        for acc in ['GSE115513','GSE73002']:
+            for sign in ['unsigned','positive']:
+                p=RUN/'models'/f'{acc}_{sign}_node_replicates.npz'
+                if not p.exists():continue
+                z=np.load(p);tab=pd.read_csv(RUN/'tables'/f'{acc}_{sign}_node_cv.csv')
+                for support,hs,ss in [('full','hard','soft'),('common_support','hard_common','soft_common')]:
+                    rows=tab[tab.support.eq(support)].sort_values('node')
+                    np.testing.assert_allclose(rows.hard_cv,cv(z[hs]),equal_nan=True,atol=1e-12)
+                    np.testing.assert_allclose(rows.soft_cv,cv(z[ss]),equal_nan=True,atol=1e-12)
+        path=RUN/'figures/figure_manifest.json'
+        if path.exists():
+            for fig in json.loads(path.read_text()):
+                for source in fig['source_tables']:self.assertEqual(sha(source['path']),source['sha256'])
+                self.assertTrue(Path(fig['png']).exists());self.assertTrue(Path(fig['svg']).exists())
+    def test_simulation_empirical_separation(self):
+        path=RUN/'tables/simulation_summary.csv'
+        if path.exists():
+            d=pd.read_csv(path);self.assertTrue(d.content.eq('SIMULATED').all());self.assertTrue(d.datasets.eq(200).all())
+            self.assertTrue(d.coverage_target.str.contains('NOT adjusted EBC').all())
 
 if __name__=='__main__':unittest.main()
